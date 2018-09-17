@@ -1,0 +1,30 @@
+! Input file for example using external script, optimize the elastic parameters
+ *ipar_init  ! Initial parameters
+!Emod,  nu
+200e3, 0.3
+ *ipar_optim
+1, 2
+ *ipar_min
+180e3, 0.0
+ *ipar_max
+220e3, 0.5
+
+<sim>
+0   ! External script
+<<ext_cmd>>
+ *script
+python elastic_sim.py
+
+<opt>
+1   !nlopt type
+<<start>>
+ *algorithm
+NLOPT_LN_NELDERMEAD
+ *initial_step
+0.1 !Can also be a vector specifying the step for each of the optimized variables
+<<end_cond>>
+! Stopping criteria
+ *maxeval   ! Maximum number of function evaluations
+100
+ *xtol_abs
+1e-8

@@ -1,0 +1,66 @@
+Case 1: PASS
+   error = 1.14E-06
+   time  = 2.41E-01 s
+Case 2: PASS
+   error = 4.39E-06
+   time  = 2.76E-01 s
+Case 3: PASS
+   error = 9.00E-07
+   time  = 2.46E-01 s
+Case 4: PASS
+   error = 7.18E-09
+   time  = 1.61E-01 s
+Case 5: PASS
+   error = 2.78E-10
+   time  = 4.40E-01 s
+Case 6: PASS
+   error = 8.91E-06
+   time  = 5.92E-01 s
+Case 7: PASS
+   error = 7.47E-05
+   time  = 1.96E+00 s
+Case 8: PASS
+   error = 1.75E-06
+   time  = 2.60E-01 s
+Case 9: PASS
+   error = 7.90E-12
+   time  = 1.79E-01 s
+Case 10: PASS
+   error = 3.61E-10
+   time  = 4.09E-01 s
+Case 11: PASS
+   error = 1.49E-10
+   time  = 4.03E-01 s
+Case 12: PASS
+   error = 1.49E-10
+   time  = 4.51E-01 s
+Case 13: PASS
+   error = 6.97E-05
+   time  = 3.38E-01 s
+Case 14: PASS
+   error = 1.04E-13
+   time  = 4.10E-02 s
+Case 15: PASS
+   error = 9.23E-12
+   time  = 6.00E-02 s
+Case 16: PASS
+   error = 4.97E-09
+   time  = 5.50E-02 s
+Case 17: PASS
+   error = 6.15E-13
+   time  = 7.70E-02 s
+Case 18: PASS
+   error = 3.89E+08
+   time  = 6.30E-02 s
+Case 19: PASS
+   error = -7.00E+00
+   time  = 2.80E-02 s
+Case 20: PASS
+   error = 3.89E+08
+   time  = 5.80E-02 s
+Case 21: PASS
+   error = 3.06E-04
+   time  = 4.80E-02 s
+Case 22: PASS
+   error = 1.10E-02
+   time  = 4.25E-01 s

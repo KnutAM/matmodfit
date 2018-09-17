@@ -1,0 +1,31 @@
+# Project specific folders not tracked
+##################
+#Neglect all build folders
+*build*
+#Neglect installation folder for matmodfit
+matmodfit/*
+
+#A lib folder can be used to store e.g. nlopt dll's, umats etc to allow cleaning the build folders
+lib/*
+
+# A matlab folder is good to use for analyzing the output data
+matlab/
+
+# A user data folder is used for general purpose saving of user data that should not be version controlled
+mydata/
+
+# Compressed files #
+######################
+*.zip
+*.tar.gz
+
+
+# Autosave files #
+##################
+*.asv
+*~*
+
+# OS generated files #
+######################
+ehthumbs.db
+Thumbs.db

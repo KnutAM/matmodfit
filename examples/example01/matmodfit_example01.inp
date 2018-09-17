@@ -1,0 +1,47 @@
+! Input file for matmodfit
+ *umat_lib
+chaboche
+ *nstatv
+8
+ *ipar_init  ! Initial parameters
+!Emod,  nu, sy0,  Hiso, invYiso,   Hk1, invYk1
+200e3, 0.3, 300, 20000,   0.001, 20000,  0.001
+ *ipar_optim
+3, 4, 5, 6, 7
+ *ipar_min
+100,    100, 0,   100, 0
+ *ipar_max
+1000, 90000, 1, 90000, 1
+
+<sim>
+1
+<<mesh1d>>
+ *node_pos
+0, 4.898979486
+<<exp>>
+ *ctrl  !(Step, Axial, Rotation, Inside, Outside)
+1! Number of steps for which ctrl is defined
+1, 1, 1, 1, -1 !Strain controlled, no rotation, no inside strain/displacement, zero external pressure
+ *exp_data
+example01_expdata1.txt
+ *exp_info !(step, time, axial force, axial strain, torque, torsional rotation, internal pressure, inner circumferential strain, external pressure, outer circumferential strain, temperature)
+0, 1, 2, 3, 0, 0, 0, 0, 0, 0, 0
+<<iter>>
+ *time_incr
+1  ! How many steps the increment settings are specified for
+1, 1e-2
+<<err>>
+ *err_scale 
+1               !number of steps err_scale given for
+1, 1, 0, 0, 0   !(step, axial, torsion, inside, outside)
+
+<opt>
+1
+<<start>>
+ *algorithm
+28
+ *initial_step
+0.3 !Can also be a vector specifying the step for each of the optimized variables
+<<end_cond>>
+ *maxeval   ! Maximum number of function evaluations
+2000

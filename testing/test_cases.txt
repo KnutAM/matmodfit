@@ -1,0 +1,23 @@
+Case ID     input_file[w/o suffix]      max_error       max_time[s]     Comment
+    001                   test_01            1e-5               2.0     Abaqus run with built-in model
+    002                   test_02            1e-5               2.0     Abaqus run with built-in model
+    003                   test_03            1e-6               2.0     Abaqus run with umat (otherwise same as Case 1)
+    004                   test_04            1e-6               2.0     Internal/External strain only
+    005                   test_05            1e-6               2.0     Finite strain, all combined
+    006                   test_06            1e-5               5.0     Finite strain, internal/external disp only and they are load ctrl
+    007                   test_07            1e-4               7.0     Finite strain, combined, 2nd order element, load ctrl
+    008                   test_08            2e-6               2.0     Continued analysis (>0): Same as Case 3, but expdata split into 2
+    009                   test_09            1e-10              2.0     Continued analysis (<0): Expdata based on matmodfit simulation of similar type as Case 3, before split into 2.
+    010                   test_10            1e-9               2.0     Continued analysis (>0): Finite strain (test_05 split)
+    011                   test_11            1e-9               2.0     Continued analysis (<0): Finite strain (test_05 split.) Note that element center nodes not accurately positions as only end nodes are given as input...
+    012                   test_12            1e-9               2.0     Continued analysis (<0): Finite strain (test_05 split.) Same as 11, but split into 3 parts
+    013                   test_13            1e-4               2.0     Remeshing test (no element removal as this is hard to test, but remeshed using the deformed locations of the outer nodes as input for element removal and continued analyses)
+    014                   test_14            1e-10              2.0     MPS uniaxial tension test (2 cycles)
+    015                   test_15            1e-10              1.0     MPS vs abaqus small strains (F11,F22,F33,F13 and F23 ramped)
+    016                   test_16            1e-8               1.0     MPS vs abaqus finite strains (F11,F22,F33,F13 and F23 ramped)
+    017                   test_17            1e-10              1.0     ATP with special control (external strain prescribed at zero external pressure)
+    018                   test_18            1e20               5.0     Optimization using ATP
+    019                   test_19            1e20               1.0     Optimization with user library
+    020                   test_20            1e20               1.0     Optimization using ATP with user optimization method
+    021                   test_21            1e20               1.0     Optimization using ATP with user material parameter scaling
+    022                   test_22            1e20               1.0     External script (python) with optimization and optanalyzer

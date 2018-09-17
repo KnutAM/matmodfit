@@ -1,0 +1,32 @@
+! Single simulation of finite strains with MPS (displacement control)
+ *run_type
+1
+ *umat_lib
+gfs_bc
+ *ipar_init
+80000.0, 175, 400.0, 10000.0, 0.0025, 1.0, 5000.0, 0.002, 1.0
+ *nstatv
+19
+ *nlgeom
+1
+
+<sim>
+2
+<<outp>>
+ *result_inclexp
+T
+<<err>>
+ *err_norm_met
+2
+<<exp>>
+ *ctrl
+1
+1, 1, 1, 1, 1, 1, 1, 1, 1, 1 !(stp, 11, 22, 33, 12, 23, 31, 13, 21, 32)
+ *exp_data
+example05_expdata.txt
+ *exp_info !(step, time, P11, F11-1.0, P22, F22-1.0, P33, F33-1.0, P12, F12, P23, F23, P31, F31, P13, F13, P21, F21, P32, F32, temp)
+1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 11, 12, 0, 0, 9, 10, 0, 0, 0, 0, 0
+<<iter>>
+ *time_incr
+1
+1, 0.005

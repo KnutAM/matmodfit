@@ -1,0 +1,70 @@
+! Input file for matmodfit
+ *run_type
+1, 2, 3  ! Single simulation, optimization, single simulation, optimum analyzer
+ *umat_lib
+chaboche
+ *nstatv
+8
+ *ipar_init  ! Initial parameters
+!Emod,  nu, sy0,  Hiso, invYiso,   Hk1, invYk1
+200e3, 0.3, 400, 10000,   0.01, 10000,  0.01
+ *ipar_optim
+3, 4, 5, 6, 7
+ *ipar_min
+100, 100, 1e-4, 100, 1e-4
+ *ipar_max
+1000, 1e5, 0.1, 1e5, 0.1
+ *ipar_sctype
+1, 1, 3, 1, 3
+ *num_grad_pert
+1e-8
+
+<sim>
+1   ! stype = atp
+<<mesh1d>>! Geometry, mesh
+ *node_pos
+6, 7
+ *ngp
+1
+ *element_order
+1
+<<exp>>     !Experiment setup
+ *ctrl  !(Step, Axial, Rotation, Inside, Outside, Temperature)
+1! Number of steps for which ctrl is defined
+1, 1, 1, -1, -1 !Strain controlled, no rotation, no inside strain/displacement, zero external pressure
+ *exp_data
+example02_expdata1.txt
+ *exp_info !(step, time, axial force, axial strain, torque, torsional rotation, internal pressure, inner circumferential strain, external pressure, outer circumferential strain, temperature)
+1, 4, 10, 6, 11, 7, 0, 0, 0, 0, 0
+
+<<iter>>! Iteration settings
+ *time_incr
+1  ! How many steps the increment settings are specified for
+1, 1e-2, 1e-3
+<<err>> ! Error settings
+ *err_scale 
+1               !number of steps that err_scale given for
+1, 1, 1, 0, 0   !(step, axial, torsion, inside, outside)
+ *err_norm_met
+2
+<<outp>>    ! Output settings
+ *result_inclexp
+T
+
+<opt>
+1   !otype: nlopt optimization method
+<<start>>
+ *algorithm
+NLOPT_GN_ISRES
+<<end_cond>>
+ *maxeval   ! Maximum number of function evaluations
+600
+
+<opt>
+1   !otype: nlopt
+<<start>>
+ *algorithm
+NLOPT_LN_BOBYQA
+<<end_cond>> ! Stopping criteria
+ *maxeval   ! Maximum number of function evaluations
+600
