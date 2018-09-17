@@ -2,7 +2,7 @@
 material model fitting program
 
 ## Download with git
-git clone git@bitbucket.org:knutan/matmodfit.git
+"git clone git@github.com:KnutAM/matmodfit.git"
 
 ## Language version and compiler support
 The Fortran 2008 standard is used
@@ -12,13 +12,13 @@ Windows (ifort with Visual studio)
 
 ## Setup environment
 Windows
-* <mkdir build>
-* <cd build>
-* <cmake -A x64 ../src>
+* "mkdir build"
+* "cd build"
+* "cmake -A x64 ../src"
 
 Linux
-* <cd scripts>
-* <chmod 744 install_matmodfit.sh>
+* "cd scripts"
+* "chmod 744 install_matmodfit.sh"
 * ./install_matmodfit.sh
 
 ## Coding standard
