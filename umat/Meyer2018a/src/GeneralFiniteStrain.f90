@@ -63,13 +63,17 @@
 !   kinc        [int]           Increment number
 ! 
  
-!include 'smsutility.f90'            !Required for AceGen code 
+! To compile for abaqus, remove comments on smsutility, gfs_ow/bc, Tensors_module, 
+! SolveMatrixEquation and GFS_module. Also comment out "!DEC$ ATTRIBUTES DLLEXPORT :: UMAT"
+! by adding another exclamation mark in front. 
+    
+!include '../../umat_utils/smsutility.f90'            !Required for AceGen code 
 
 !include 'gfs_ow.f90'
 !include 'gfs_bc.f90'
 
-!include 'D:\BoxSync\knutan\PhD\CODING\Fortran_libraries\Tensor_module\Tensors_module.f90'
-!include 'Tensors_module.f90'       !Use this when compiling on cluster with tensor module copied into same folder
+!include '../../umat_utils/Tensors_module.f90'
+!include '../../umat_utils/SolveMatrixEquation.f90'
 !include 'GFS_module.f90'            !Support functions written for this model
 
 SUBROUTINE UMAT(stress,statev,ddsdde,sse,spd,scd, &
@@ -101,7 +105,7 @@ double precision, allocatable   :: jac_inv(:,:), r0(:)
 integer                         :: k1, info, max_iter
 logical                         :: yielding, lconv, use_el_stiff
 double precision                :: newton_tolerance
-
+double precision                :: stressi(6), ddsddei(6,6) ! Internal stress and stiffness (always full)
 newton_tolerance = 1.d-8  !
 max_iter = 20
 ! Check input
@@ -114,7 +118,7 @@ call import_statevar(statev)
 ! Check elastic response
 Fnew = m_2_v9(dfgrd1)
 ! If response is elastic, stress and ddsdde has been correctly calculated. Otherwise they are zero.
-call elastic(props, statev, Fnew, yielding, stress, ddsdde_elastic, use_el_stiff)
+call elastic(props, statev, Fnew, yielding, stressi, ddsdde_elastic, use_el_stiff)
 
 if (yielding) then
     !Solve for plasticity:
@@ -130,7 +134,7 @@ if (yielding) then
     !call newton_raphson_num(residual, x0, jac_inv, lconv, info, props, statev, param, printres=1)
     
     !Calculate ddsdde, statev and stress from solution of local problem
-    call plastic_output(ddsdde, statev, stress, x0, jac_inv, Fnew, props)
+    call plastic_output(ddsddei, statev, stressi, x0, jac_inv, Fnew, props)
     
     !Check that solution converged
     call check_analysis(lconv,pnewdt)
@@ -142,7 +146,10 @@ call export_statevar(statev)
 
 !If desired, return elastic tangent stiffness
 if (use_el_stiff) then
-    ddsdde = ddsdde_elastic
+    ddsddei = ddsdde_elastic
 endif
+
+stress = stressi(1:ntens)
+ddsdde = ddsddei(1:ntens, 1:ntens)
 
 END SUBROUTINE
