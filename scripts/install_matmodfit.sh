@@ -35,7 +35,7 @@ if [ -z "$MKLROOT" ]; then
 fi;
 
 
-# Modify the ~./profile file to contain the necessary environmental variables
+# Modify the ~/.[bash_]profile file to contain the necessary environmental variables
 START_STRING="#Automatically added matmodfit directories"
 LD_STRING='export LD_LIBRARY_PATH="$LD_LIBRARY_PATH":'"$installdir"
 PATH_STRING='export PATH="$PATH":'"$installdir"
@@ -45,28 +45,13 @@ END_STRING="#End of matmodfit directories"
 # We should therefore not create it if it doesn't exist.
 path_file="noadd"
 if [ -f ~/.bash_profile ]; then
-	echo "Do you want to add path entries to the ~/.bash_profile file? (yes/no)"
-	read answer
-	if [ "$answer" == "yes" ]; then
-		echo "$START_STRING" >>~/.bash_profile
-		echo "$LD_STRING" >>~/.bash_profile
-		echo "$PATH_STRING" >>~/.bash_profile
-		echo "$END_STRING" >>~/.bash_profile
-		path_file="~/.bash_profile"
-	fi;
+    path_file="~/.bash_profile"
 else
-	echo "Do you want to add path entries to the ~/.profile file? (yes/no)"
-	read answer
-	if [ "$answer" == "yes" ]; then
-		echo "$START_STRING" >>~/.profile
-		echo "$LD_STRING" >>~/.profile
-		echo "$PATH_STRING" >>~/.profile
-		echo "$END_STRING" >>~/.profile
-		path_file="~/.profile"
-	fi;
+    path_file="~/.profile"
 fi;
 
-
+echo "Do you want to add path entries to the $path_file file? (yes/no)"
+read add_to_path
 
 # Create installation directory
 mkdir $installdir  # Create folder to contain all the finished software
@@ -77,7 +62,32 @@ mkdir build  # Create a build folder
 cd build
 
 FC=$compiler cmake ../src
+if [ $? -ne 0 ]; then
+    echo "Could not setup build environment, check that nlopt and mkl was found"
+    echo "If in a cluster environment you must load the required modules for mkl"
+    echo "If nlopt is not found please specify the full path of libnlopt.so"
+    echo "or press enter to quit:"
+    read nlopt_path
+    if [ $nlopt_path ]; then
+        rm -rf *
+        FC=$compiler cmake -D nlopt_lib=$nlopt_path ../src
+        if [ $? -ne 0 ]; then
+            echo "Setting up environment still failed, I don't know why it isn't working..."
+            rm -r $installdir
+            exit 1
+        fi;
+    else
+        rm -r $installdir
+        exit 1
+    fi;
+fi;
+
 make
+if [ $? -ne 0 ]; then
+    echo "Building of matmodfit failed, please see error messages"
+    rm -r $installdir
+    exit 1
+fi;
 
 cp matmodfit $installdir
 
@@ -89,16 +99,18 @@ python bld_umats.py $installdir $compiler
 echo "material models have been built, building examples"
 python bld_examples.py $installdir $compiler
 
-
-PATH="$installdir:$PATH"
-LD_LIBRARY_PATH="$installdir:$LD_LIBRARY_PATH"
-
-echo $PATH
-echo $LD_LIBRARY_PATH
-
 echo "Verification of installation"
 matmodfit --version
 
+
+if [ "$add_to_path" == "yes" ]; then
+	echo "$START_STRING" >>$path_file
+	echo "$LD_STRING" >>$path_file
+	echo "$PATH_STRING" >>$path_file
+	echo "$END_STRING" >>$path_file
+else
+    path_file="noadd"	
+fi;
 
 #Script completed
 echo "Setup completed"
