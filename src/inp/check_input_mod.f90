@@ -339,7 +339,7 @@ integer         :: k1
         elseif (any(exp%ctrl(1,:)<0)) then
             call bad_input('The first column in ctrl represents steps and must be strictly positive')
         elseif (.not.dbl_compare(exp%ctrl(1,1),1.d0)) then
-            if (exp%exp_info(1)/=0) then
+            if (exp%exp_info(1)==0) then
                 call bad_input('The first row in ctrl should give the settings for the first load step')
             endif
         elseif (size(exp%ctrl, 2)>1) then
