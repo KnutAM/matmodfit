@@ -12,11 +12,11 @@ pkg_check_modules(PC_NLOPT QUIET nlopt)
 set(NLOPT_DEFINITIONS ${PC_NLOPT_CFLAGS_OTHER})
 
 find_path(NLOPT_INCLUDE_DIR nlopt.h
-          HINTS ${PC_NLOPT_INCLUDEDIR} ${PC_NLOPT_INCLUDE_DIRS} $ENV{LD_LIBRARY_PATH}
+          HINTS ${PC_NLOPT_INCLUDEDIR} ${PC_NLOPT_INCLUDE_DIRS} $ENV{LD_LIBRARY_PATH} $HOME/install
           )
 
 find_library(NLOPT_LIBRARY NAMES libnlopt nlopt
-             HINTS ${PC_NLOPT_LIBDIR} ${PC_NLOPT_LIBRARY_DIRS} )
+             HINTS ${PC_NLOPT_LIBDIR} ${PC_NLOPT_LIBRARY_DIRS} $HOME/install)
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set NLOPT_FOUND to TRUE
