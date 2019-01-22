@@ -165,7 +165,7 @@ implicit none
         endif
    
         node_pos_result = (/rpos(1,:), rpos(size(rpos,1), size(rpos,2))/) + f_data_relax%sim(1)%end_res%u_end(node_disp_ind)
-        pos_error = sqrt(  sum( ( (node_pos_result-f_data%sim(simnr)%mesh1d%node_pos) &
+        pos_error = sqrt(  sum( ( (node_pos_result-f_data%sim(simnr)%mesh1d%node_pos)**2 &
                                   /max(1.d-6,f_data%sim(simnr)%mesh1d%node_pos) )**2 )  )
         if (pos_error<f_data%sim(simnr)%atp_er%node_pos_tol) then
             geom_conv = .true.
@@ -362,7 +362,7 @@ implicit none
                                                 +  all_node_pos0_old(3:(nnod_tot_old):2))/2.d0
     endif
     do ind=1,size(node_pos)
-        all_node_pos0((ind-1)*(nnod-1)+1) = get_orig_node_pos(node_pos(ind), all_node_pos0_old, u_old)
+        all_node_pos0((ind-1)*(nnod-1)+1) = get_orig_node_pos(node_pos(ind), all_node_pos0_old, u_old(3:size(u_old)))
     enddo
     if (nnod==3) then
         ! Need to assign internal element nodal coordinates
@@ -533,7 +533,7 @@ function get_orig_node_pos(rhat, rold, uold) result(rnew)
 implicit none
     double precision, intent(in)        :: rhat     !Deformed node location
     double precision, intent(in)        :: rold(:)  !The old nodal positions (old mesh)
-    double precision, intent(in)        :: uold(:)  !The old displacements (old mesh)
+    double precision, intent(in)        :: uold(:)  !The old displacements (old mesh) (only radial displacements)
     double precision                    :: rnew     !The new (undeformed/initial) node position of rhat
     integer                             :: pos
     double precision                    :: unew
