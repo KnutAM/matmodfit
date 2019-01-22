@@ -289,7 +289,7 @@ implicit none
     
     ! If sample is zero, don't allow changing the inner radius
     if (f_data_relax%sim(1)%mesh1d%node_pos(1)<1.d-12) then
-        f_data_relax%sim(1)%exp%ctrl(1,4) = 1
+        f_data_relax%sim(1)%exp%ctrl(4,1) = 1
     endif
     
     
