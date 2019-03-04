@@ -53,9 +53,11 @@ subroutine solve_incr(Rpos, H0, load, disp, temp, dtemp, time, dt, free_dofs, kn
         double precision :: gp_F0(9, size(gp_F, dim=2), size(gp_F, dim=3))
         double precision :: gp_s0(6, size(gp_s, dim=2), size(gp_s, dim=3))
         double precision :: gp_strain0(6, size(gp_strain,dim=2), size(gp_strain,dim=3))
-        double precision :: gp_sv0(size(gp_sv,dim=1), size(gp_sv,dim=2), size(gp_sv,dim=3))
         double precision :: u_old(size(u)), ue(size(Rpos,1)+2)
         double precision :: Rscale      ! Scale factor for the equilibrium equations
+        double precision, allocatable :: gp_sv0(:,:,:)
+        
+        allocate(gp_sv0(size(gp_sv,dim=1), size(gp_sv,dim=2), size(gp_sv,dim=3)))
         
         nnod= size(Rpos,1) !Number of nodes per element
         nel = size(Rpos,2) !Number of elements

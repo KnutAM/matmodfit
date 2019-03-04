@@ -53,13 +53,16 @@ implicit none
     character(len=80)           :: cmname
     integer                     :: nstatv, nprops, noel, kstep, kinc
     double precision            :: dt,temp,dtemp,pnewdt,celent,sse,spd,scd,rpl,drpldt
-    double precision            :: stress(6), statev(size(gpstatev, dim=1)), ddsdde(6,6), ddsddt(6), drplde(6)
+    double precision            :: stress(6), ddsdde(6,6), ddsddt(6), drplde(6)
     double precision            :: stran(6), dstran(6), abatime(2), props(:), coords(3), drot(3,3), dfgrd0(3,3)
     double precision            :: dfgrd1(3,3), predef(1), dpred(1)
+    double precision, allocatable :: statev(:)
     !internal variables
     double precision:: dNpdR(nnod), Np(nnod), phi, uz, r, R0, w, F9(9), drdR, ue_r(ndof-2), B_ki(9,ndof), C_kij(9,ndof,ndof)
     integer         :: k1
     double precision:: bbar_F22, bbar_B_ki_row2(ndof), bbar_C_kij_row2(ndof,ndof)
+    
+    allocate(statev(size(gpstatev, dim=1)))
     
     celent = Rpos(nnod)-Rpos(1)
     nstatv = size(gpstatev, dim=1)
