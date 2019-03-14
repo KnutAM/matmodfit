@@ -88,7 +88,7 @@ implicit none
 
     ! == RELAX PREVIOUS SIMULATION == 
     prev_simnr = abs(f_data%sim(simnr)%init%cont_analysis)
-    call atp_relax(relx_conv, props, f_data, simnr, prev_simnr, f_data_initial_relax, '_relax0')
+    call atp_relax(relx_conv, props, f_data, simnr, prev_simnr, f_data_initial_relax, '_relax'//int2str(simnr)//'_0')
     if (.not.relx_conv) then
         error = huge(1.d0)
         return
@@ -171,7 +171,7 @@ implicit none
         call atp_export_end(f_data, simnr, u0, gp_stress, gp_strain, gp_F, gp_sv, disp, load, h0)
    
         ! Relax 
-        call atp_relax(relx_conv, props, f_data, simnr, simnr, f_data_relax, '_relax'//int2str(k1), rpos)
+        call atp_relax(relx_conv, props, f_data, simnr, simnr, f_data_relax, '_relax'//int2str(simnr)//'_'//int2str(k1), rpos)
         if (.not.relx_conv) then
             error = huge(1.d0)
             return
