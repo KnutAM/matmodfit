@@ -127,7 +127,7 @@ implicit none
         
         if (pnewdt<1.d0) then
             call write_output('material routine (stp='//int2str(kstep)//', incr='//int2str(kinc)//', e='//int2str(noel)//', gp='//int2str(k1)//') requested a smaller timestep: pnewdt='//dbl2str(pnewdt,'F0.4'), 'status', 'sim:atp')
-        !    exit
+            exit
         endif
         
     enddo
