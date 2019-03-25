@@ -344,7 +344,7 @@ endif
 call system_clock ( clock_count, clock_rate)
 stoptime = real(clock_count)/real(clock_rate)
 
-call close_result_output(save_results, stoptime-starttime)
+call close_result_output(save_results, stoptime-starttime, error)
 
 end subroutine atp_simulate
 

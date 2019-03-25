@@ -10,14 +10,18 @@ public  :: write_result
 character(len=20)   :: dbl_format
     contains
     
-subroutine close_result_output(save_results, simtime)
+subroutine close_result_output(save_results, simtime, error)
 implicit none
     logical, intent(in)         :: save_results
     double precision, optional  :: simtime
+    double precision, optional  :: error
     
     if (save_results) then
         if (present(simtime)) then
-            write(fid_res, "(A, F0.3, A)") '% Simulation time ', simtime, 's'
+            write(fid_res, "(A, F0.3, A)") '% Simulation time:  ', simtime, 's'
+        endif
+        if (present(error)) then
+            write(fid_res, "(A, E15.5)") '% Simulation error: ', error
         endif
         close(fid_res)
     endif
