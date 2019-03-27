@@ -8,6 +8,8 @@ implicit none
     private
     public  :: atp_element_removal ! Axial-torsion-pressure element removal routine
     
+    logical :: interpolate_failed = .false.
+    
     contains
 ! Element removal procedure
 ! ============================================================================================================
@@ -114,6 +116,11 @@ implicit none
     node_disp_old_mesh = f_data_initial_relax%sim(1)%end_res%u_end(3:(ntnod_old+2):(nenod_old-1))
     node_pos_old_mesh = f_data_initial_relax%sim(1)%mesh1d%node_pos + node_disp_old_mesh
     node_pos_update = interpolate(node_pos_old_mesh, node_disp_old_mesh, node_pos_guess)
+    if (interpolate_failed) then
+        error = huge(1.d0)
+        return
+    endif
+    
      ! Update the guess to be of the undeformed positions
     node_pos_guess = node_pos_guess - node_pos_update ! Guess for undeformed positions
     node_pos_result= 0.d0
@@ -147,6 +154,10 @@ implicit none
     GEOM_ITER_LOOP: do k1=1,f_data%sim(simnr)%atp_er%geom_iter_max
         
         call remesh(node_pos_guess, f_data, f_data_initial_relax, simnr, rpos, h0, gp_stress, gp_strain, gp_F, gp_sv, u0)
+        if (interpolate_failed) then
+            error = huge(1.d0)
+            return
+        endif
         
         if (new_is_solid) then
             u0(3) = 0.d0
@@ -574,11 +585,15 @@ implicit none
     allocate(yv(num_out_points))
     
     if (xv(1)<x(1)-numtol) then
-        call write_output('Interpolation failed, x(1) must be <= xv(1)', 'error', 'sim:atp_element_removal')
+        call write_output('Interpolation failed, x(1) must be <= xv(1)', 'status', 'sim:atp_element_removal')
+        interpolate_failed = .true.
+        return
     endif
     
     if (xv(num_out_points)>x(num_base_points)+numtol) then
-        call write_output('Interpolation failed, x(end) must be >= xv(end)', 'error', 'sim:atp_element_removal')
+        call write_output('Interpolation failed, x(end) must be >= xv(end)', 'status', 'sim:atp_element_removal')
+        interpolate_failed = .true.
+        return
     endif
     
     first_above = 2
