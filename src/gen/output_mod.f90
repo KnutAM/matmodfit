@@ -170,7 +170,7 @@ implicit none
     character(len=*), optional  :: output_type, location
     logical, optional           :: loc  !Should location be shown, or just whitespace
     logical, optional           :: halt !Should program stop (default for error, and not for other message types)
-    character(len=11)           :: output_type_str, location_str
+    character(len=25)           :: output_type_str, location_str
     logical                     :: show_loc, stop_program
     character(len=50)           :: location_full
     integer                     :: loclen
