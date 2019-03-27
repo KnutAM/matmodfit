@@ -129,6 +129,20 @@ use iso_c_binding
                                                                     ! If result_steps<0 then no result file is made
         character(len=strl)             :: dbl_format=''            ! Output format for float values in result file (default set in check_input_mod.f90)
         
+        ! Additional output
+        integer, allocatable            :: output_nodes(:)          ! Which nodes to output from (default is all) (Only applicable to atp simulation, ignored for mps)
+        logical                         :: ur=.false.               ! Should radial displacements be output?
+        integer, allocatable            :: output_elems(:)          ! Which elements to output from. Always all integration points. (Only applicable to atp simulation, ignored for mps)
+        logical                         :: stress=.false.           ! Should stress be output?
+        integer, allocatable            :: stress_comp(:)           ! Which stress components to output. nlgeom: (11,22,33,12,32,31,13,21,32), else (11,22,33,12,13,23)
+        logical                         :: strain=.false.           ! Should strain be output?
+        integer, allocatable            :: strain_comp(:)           ! Which strain components to output. nlgeom: (11,22,33,12,32,31), else (11,22,33,12,13,23)
+        logical                         :: dfgrd=.false.            ! Should deformation gradient be output?
+        integer, allocatable            :: dfgrd_comp(:)            ! Which deformation gradient components to output. Always: (11,22,33,12,32,31,13,21,32)
+        logical                         :: statev=.false.           ! Should state variables be output?
+        integer, allocatable            :: statev_comp(:)           ! Which state variable components to output.
+        ! If the corresponding *_comp are set by user, * should be set to true!
+        
     end type outp_typ
     
     ! ATP Element Removal settings

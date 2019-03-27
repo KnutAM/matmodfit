@@ -141,6 +141,7 @@ if (eout) then
     if (f_data%sim(simnr)%n_errors/=-1) then ! If a previous simulation already has found the correct number of errors
         evec_est_length = max(f_data%sim(simnr)%n_errors,1)
     else
+        ! THIS SEEMS WRONG, SHOULD BE 6* if nlgeom=false and 9* if nlgeom=true
         evec_est_length = 4*(int(expdata(size(expdata,1), exp_info(2))/minval(iter%time_incr(:,2)))+1) !Worst case size
         resize_evec = .true.
     endif
@@ -177,7 +178,7 @@ call error_settings(f_data%sim(simnr)%err, psize, err_norm_met, error_steps, &
 
 ! Output file
 if (save_results) then
-    call setup_result_output(trim(f_data%glob%outname)//'_sim'//int2str(simnr)//'_'//int2str(f_data%glob%resnr)//'.txt', result_inclexp, f_data%sim(simnr)%stype, nlgeom, f_data%sim(simnr)%outp%dbl_format)
+    call setup_result_output(trim(f_data%glob%outname)//'_sim'//int2str(simnr)//'_'//int2str(f_data%glob%resnr)//'.txt', f_data%sim(simnr)%stype, nlgeom, f_data%sim(simnr)%outp, 1)
 endif
 
 STEP_LOOP: do kstep = 1,nstep
@@ -238,7 +239,9 @@ STEP_LOOP: do kstep = 1,nstep
         
         ! Write out results for the main increment if it should for current step
         if (res_in_step) then
-            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, additional_output, result_inclexp)
+            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, &
+                             reshape(load, [size(load), 1, 1]), reshape(disp, [size(disp), 1, 1]), &    ! Stress and strain
+                             reshape(disp, [9, 1, 1], pad=[0.d0]), reshape(stat, [size(stat), 1, 1]))      ! Deformation gradient and state variables
         endif
         
         dtmain_true = tmain(kmain)-time(1)  ! True main time increment
@@ -275,7 +278,9 @@ STEP_LOOP: do kstep = 1,nstep
                 
                 ! Write out results if that is requested for current simulation/step/increment, and it is not the laststep (then it will be written later)
                 if ((res_in_step).and.(.not.result_onlymain).and.(.not.laststep)) then
-                    call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, additional_output, result_inclexp)
+                    call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, &
+                                        reshape(load, [size(load), 1, 1]), reshape(disp, [size(disp), 1, 1]), &    ! Stress and strain
+                                        reshape(disp, [9, 1, 1], pad=[0.d0]), reshape(stat, [size(stat), 1, 1]))      ! Deformation gradient and state variables
                 endif
                 
                 ! Update time stepping
@@ -305,7 +310,9 @@ STEP_LOOP: do kstep = 1,nstep
     if (kstep==nstep) then
         ! Write out results for last main step in last step, if it should for this step
         if (res_in_step) then
-            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, additional_output, result_inclexp)
+            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, &
+                                reshape(load, [size(load), 1, 1]), reshape(disp, [size(disp), 1, 1]), &    ! Stress and strain
+                                reshape(disp, [9, 1, 1], pad=[0.d0]), reshape(stat, [size(stat), 1, 1]))      ! Deformation gradient and state variables
         endif
         
         if (err_in_step) then

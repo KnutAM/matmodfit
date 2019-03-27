@@ -45,6 +45,8 @@ module check_input_mod
     ! Variables 
     logical     :: nlgeom
     integer     :: nstatv, nchannels
+    integer     :: nnod = 1
+    integer     :: nel = 1
     
     
     contains
@@ -404,6 +406,9 @@ double precision    :: ctrl(:,:)
         call write_output('Over-integration of element is specified', 'status', 'inp')
     endif
     
+    nnod = size(mesh1d%node_pos) + (mesh1d%element_order-1)*(size(mesh1d%node_pos)-1)
+    nel = size(mesh1d%node_pos) - 1
+    
 end subroutine
 
 subroutine check_sim_iter(iter)
@@ -453,6 +458,8 @@ implicit none
     type(outp_typ)      :: outp
     character(len=50)   :: tmpstr
     integer             :: outpstatus
+    integer             :: k1
+    integer             :: default_comp(4)
 
     if (.not.allocated(outp%result_steps)) then
         allocate(outp%result_steps(size(DEF_result_steps)))
@@ -470,8 +477,55 @@ implicit none
         call write_output('The dbl_format specified gives the number 1.0 written as:', 'status', 'inp')
         call write_output('"'//trim(tmpstr)//'"', 'status', 'inp', loc=.false.)
     endif
+    
+    if (nlgeom) then
+        default_comp = [1,2,3,5]    ! 23 shear component at position 5
+    else
+        default_comp = [1,2,3,6]    ! 23 shear component at position 6
+    endif
+        
+    call add_outp_allocation(outp%output_nodes, outp%ur, [-nnod])
+    call add_outp_allocation(outp%stress_comp, outp%stress, default_comp)
+    call add_outp_allocation(outp%strain_comp, outp%strain, default_comp)
+    call add_outp_allocation(outp%dfgrd_comp, outp%dfgrd, default_comp)
+    call add_outp_allocation(outp%statev_comp, outp%statev, [-nstatv])
+    
+    
+    if (.not.allocated(outp%output_elems)) then
+        if (any([outp%stress, outp%strain, outp%dfgrd, outp%statev])) then
+            allocate(outp%output_elems(nel))
+            do k1=1,nel
+                outp%output_elems(k1)=k1
+            enddo
+        endif
+    endif
 
 end subroutine
+    
+subroutine add_outp_allocation(outp_comp, outp_logical, default_outp_comp)
+implicit none
+    integer, allocatable    :: outp_comp(:)
+    logical                 :: outp_logical
+    integer                 :: default_outp_comp(:)
+    
+    integer                 :: k1
+    
+    if (allocated(outp_comp)) then
+        outp_logical = .true.
+    elseif (outp_logical) then
+        if (default_outp_comp(1)<0) then
+            allocate(outp_comp(abs(default_outp_comp(1))))
+            do k1 = 1,abs(default_outp_comp(1))
+                outp_comp(k1) = k1
+            enddo
+        else
+            allocate(outp_comp(size(default_outp_comp)))
+            outp_comp = default_outp_comp
+        endif
+    endif
+    
+end subroutine
+
 
 subroutine check_opt_nlopt(opt)
 implicit none

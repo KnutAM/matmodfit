@@ -175,7 +175,7 @@ exp_row = 2 ! Start at row 2 to allow interpolation (if time=t_start then interp
 
 ! Output file
 if (save_results) then
-    call setup_result_output(trim(f_data%glob%outname)//'_sim'//int2str(simnr)//'_'//int2str(f_data%glob%resnr)//'.txt', result_inclexp, 1, nlgeom, f_data%sim(simnr)%outp%dbl_format)
+    call setup_result_output(trim(f_data%glob%outname)//'_sim'//int2str(simnr)//'_'//int2str(f_data%glob%resnr)//'.txt', 1, nlgeom, f_data%sim(simnr)%outp, ngp)
 endif
 
 STEP_LOOP: do kstep = 1,nstep
@@ -229,7 +229,7 @@ STEP_LOOP: do kstep = 1,nstep
         
         ! Write out results for main step if it should for current step
         if (res_in_step) then
-            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, additional_output, result_inclexp)
+            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, gp_s0, gp_strain0, gp_F0, gp_sv0, u0(3:size(u)))
         endif
         
         do while (.not.laststep)
@@ -263,7 +263,7 @@ STEP_LOOP: do kstep = 1,nstep
 
                 ! Write out results if that is requested for current simulation/step/increment for steps that are not main steps
                 if ((res_in_step).and.(.not.result_onlymain).and.(.not.laststep)) then
-                    call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, additional_output, result_inclexp)
+                    call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, gp_s, gp_strain, gp_F, gp_sv, u(3:size(u)))
                 endif
                 
                 ! Update time stepping
@@ -294,7 +294,7 @@ STEP_LOOP: do kstep = 1,nstep
     if (kstep==nstep) then
         ! Write out results for last main step in last step, if it should for this step
         if (res_in_step) then
-            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, additional_output, result_inclexp)
+            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, gp_s, gp_strain, gp_F, gp_sv, u(3:size(u)))
         endif
         
         if (err_in_step) then

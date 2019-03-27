@@ -345,6 +345,28 @@ implicit none
             call read_dbl_vector_allocate(outp%result_steps)
         elseif (adjustl(textline)=='*dbl_format') then
             call read_str(outp%dbl_format, strl)
+        elseif (adjustl(textline)=='*output_nodes') then
+            call read_int_vector_allocate(outp%output_nodes)
+        elseif (adjustl(textline)=='*ur') then
+            call read_logical(outp%ur)
+        elseif (adjustl(textline)=='*output_elems') then
+            call read_int_vector_allocate(outp%output_elems)
+        elseif (adjustl(textline)=='*stress') then
+            call read_logical(outp%stress)
+        elseif (adjustl(textline)=='*strain') then
+            call read_logical(outp%strain)
+        elseif (adjustl(textline)=='*dfgrd') then
+            call read_logical(outp%dfgrd)
+        elseif (adjustl(textline)=='*statev') then
+            call read_logical(outp%statev)
+        elseif (adjustl(textline)=='*stress_comp') then
+            call read_int_vector_allocate(outp%stress_comp)
+        elseif (adjustl(textline)=='*strain_comp') then
+            call read_int_vector_allocate(outp%strain_comp)
+        elseif (adjustl(textline)=='*dfgrd_comp') then
+            call read_int_vector_allocate(outp%dfgrd_comp)
+        elseif (adjustl(textline)=='*statev_comp') then
+            call read_int_vector_allocate(outp%statev_comp)
         else
             call write_output('Unknown category "'//trim(textline)//'".', 'warning', 'inp')
         endif
