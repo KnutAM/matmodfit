@@ -43,27 +43,22 @@ integer, allocatable            :: exp_info(:)      ! Columns in exp_data. If 0 
 ! Iteration settings
 type(iter_typ)                  :: iter             ! Iteration settings
 
-! Objective function scaling values
-integer                         :: err_norm_met     ! Method for scaling errors (i.e. no scaling, max-min value in cycle, max-min value in simulation)
-
 ! Internal variables
- ! Error vector
+ ! Error calculation
 logical                         :: eout             ! Logical if evec should be given
 integer                         :: e_cnt            ! Number of times the error is evaluated
-integer                         :: evec_cnt         ! Counter for current position in evec
-integer                         :: evec_est_length  ! Estimated length for evec
- ! Time stepping
+double precision, allocatable   :: error_hist(:,:)  ! Error history [stp, time, e1, e2, ..., eN]
+integer, allocatable            :: error_hist_comp(:,:) ! Colums in error_hist for ctrl/not ctrl and channel
+double precision, allocatable   :: stp_err_scale(:) ! Current value for err_scale
+double precision, allocatable   :: stp_err_scale_ctrl(:)
+
+! Time stepping
 double precision                :: stp_time_incr(4) ! Current value for time_incr (dtmain, dtmin, dt0, dtmax)
 integer, allocatable            :: stp_ctrl(:)      ! Current value for ctrl
 double precision                :: stp_time_tot     ! Total time for current step
 integer                         :: kstep, kinc, convincr
 double precision                :: step             ! Double with step number (can be decimal)
- ! Error scaling
-double precision, allocatable   :: stp_err_scale(:) ! Current value for err_scale
-logical                         :: cyclic_error
-double precision, allocatable   :: cyc_fsim(:,:), cyc_fexp(:,:), cyc_time(:)
-integer                         :: cyc_ptcnt
-double precision                :: last_cyc_start_step
+
  ! Experimental data
 double precision, allocatable   :: expdata(:,:)     ! Experiment data
 double precision, allocatable   :: stp_time_vec(:)  ! Temporary storage of time points in current step
@@ -71,7 +66,7 @@ double precision, allocatable   :: stp_time_vec(:)  ! Temporary storage of time 
  ! Other internals
 ! time stepping
 double precision                :: time(2), pnewdt, dt, dt_old
-double precision                :: dtmain, dtmin, dtmax, dtmain_true
+double precision                :: dtmain, dtmin, dtmax
 double precision, allocatable   :: tmain(:)                             !main time increments (used for error calculation)
 integer, allocatable            :: stprows(:)           ! Which row each step starts on
 ! 
@@ -84,9 +79,7 @@ double precision, allocatable   :: additional_output(:)                 !user ch
 double precision                :: adjustment(2,4)      ! Adjustment variable for smooth following of experimental data if control mode is changed
 integer, allocatable            :: free_dofs(:)         ! Free degrees of freedom in the problem
 !
-double precision, allocatable   :: evec_tmp(:)          !Temp variable used to resize the evec output
-!
-logical                         :: laststep, lconv, res_in_step, err_in_step, resize_evec
+logical                         :: laststep, lconv, res_in_step, err_in_step
 integer                         :: nstep, niter, kmain
 integer                         :: exp_row    ! Row in experiment data
 ! program timing
@@ -115,7 +108,7 @@ allocate(disp(psize), disp_old(psize), disp_exp(psize), v(psize), v_old(psize), 
 allocate(load(psize), load_old(psize), load_exp(psize))
 allocate(stat(f_data%glob%nstatv), stat_old(f_data%glob%nstatv))
 allocate(additional_output(1)); additional_output = 0.d0
-allocate(stp_ctrl(psize), stp_err_scale(psize))
+allocate(stp_ctrl(psize), stp_err_scale(psize), stp_err_scale_ctrl(psize))
 
 ! == Use shorter names for some variables == 
 ! slight performance loss, but increases readability
@@ -133,23 +126,6 @@ allocate(result_steps, source=f_data%sim(simnr)%outp%result_steps)
 save_results    = (f_data%glob%resnr>0).and.(any(result_steps>-1.d-10))
 result_onlymain = f_data%sim(simnr)%outp%result_onlymain
 result_inclexp  = f_data%sim(simnr)%outp%result_inclexp
-
-! == Get error vector ready if needed ==
-resize_evec = .false.
-eout = present(evec)
-if (eout) then
-    if (f_data%sim(simnr)%n_errors/=-1) then ! If a previous simulation already has found the correct number of errors
-        evec_est_length = max(f_data%sim(simnr)%n_errors,1)
-    else
-        ! THIS SEEMS WRONG, SHOULD BE 6* if nlgeom=false and 9* if nlgeom=true
-        evec_est_length = 4*(int(expdata(size(expdata,1), exp_info(2))/minval(iter%time_incr(:,2)))+1) !Worst case size
-        resize_evec = .true.
-    endif
-    allocate(evec(evec_est_length))
-endif
-evec_cnt = 1    ! Initiate evec_cnt (also use to get n_errors)
-e_cnt = 0       ! Initiate e_cnt to zero (number of error evaluations)
-error = 0.d0    ! Set error to zero
 
 !Define initial values
 time = expdata(1,exp_info(2))               ! Start time 
@@ -173,8 +149,10 @@ load = load_old
 stat = stat_old
 
 ! Error settings
-call error_settings(f_data%sim(simnr)%err, psize, err_norm_met, error_steps, & 
-    cyclic_error, cyc_fsim, cyc_fexp, cyc_time, cyc_ptcnt, last_cyc_start_step)
+call error_settings_new(f_data%sim(simnr)%err, error_hist, error_hist_comp, error_steps, &
+                        expdata(size(expdata,1), exp_info(2)), minval(iter%time_incr(2,:)))
+e_cnt = 0       ! Initiate e_cnt to zero (number of error evaluations)
+error = 0.d0    ! Set error to zero
 
 ! Output file
 if (save_results) then
@@ -225,16 +203,11 @@ STEP_LOOP: do kstep = 1,nstep
         
         ! Calculate error after at the beginning of each main increment (the last is part of next step)
         if (err_in_step) then
-            if (cyclic_error) then
-                ! Add to cyc_fsim, cyc_fexp and cyc_time
-                call cyclic_error_update(load_exp, load, disp_exp, disp, stp_ctrl, time, &
-                                        cyc_ptcnt, cyc_fsim, cyc_fexp, cyc_time)
-            else
-                call error_update(load_exp, load, disp_exp, disp, stp_ctrl, stp_err_scale, &
+            e_cnt = e_cnt + 1
+            call update_error(load_exp, load, disp_exp, disp, stp_ctrl, stp_err_scale, stp_err_scale_ctrl, &
                                     f_data%sim(simnr)%sim_setup%load_error_scale(:,kstep), &
                                     f_data%sim(simnr)%sim_setup%disp_error_scale(:,kstep), &
-                                    error, e_cnt, evec_cnt, evec)
-            endif
+                                    step, time(2), error_hist_comp, e_cnt, error_hist)
         endif
         
         ! Write out results for the main increment if it should for current step
@@ -244,7 +217,6 @@ STEP_LOOP: do kstep = 1,nstep
                              reshape(disp, [9, 1, 1], pad=[0.d0]), reshape(stat, [size(stat), 1, 1]))      ! Deformation gradient and state variables
         endif
         
-        dtmain_true = tmain(kmain)-time(1)  ! True main time increment
         do while (.not.laststep)
             ! Set starting variables for current increment
             disp = disp_old
@@ -316,26 +288,13 @@ STEP_LOOP: do kstep = 1,nstep
         endif
         
         if (err_in_step) then
-            if (cyclic_error) then
-                ! Add to cyc_fsim, cyc_fexp and cyc_time
-                call cyclic_error_update(load_exp, load, disp_exp, disp, stp_ctrl, time, &
-                                        cyc_ptcnt, cyc_fsim, cyc_fexp, cyc_time)
-            else
-                call error_update(load_exp, load, disp_exp, disp, stp_ctrl, stp_err_scale, &
+            e_cnt = e_cnt + 1
+            call update_error(load_exp, load, disp_exp, disp, stp_ctrl, stp_err_scale, stp_err_scale_ctrl, &
                                     f_data%sim(simnr)%sim_setup%load_error_scale(:,kstep), &
                                     f_data%sim(simnr)%sim_setup%disp_error_scale(:,kstep), &
-                                    error, e_cnt, evec_cnt, evec)
-            endif ! End cyclic_error
+                                    step, time(2), error_hist_comp, e_cnt, error_hist)
         endif   ! End err_in_step
     endif   ! End kstep==nstep
-    
-    if (err_in_step.and.cyclic_error) then
-        ! Export error and reset counters if last in cycle
-        call get_cyclic_error(f_data%sim(simnr)%sim_setup%steps(kstep:min(kstep+1,nstep)), f_data%sim(simnr)%err, stp_ctrl, &
-            f_data%sim(simnr)%sim_setup%load_error_scale(:,kstep), f_data%sim(simnr)%sim_setup%disp_error_scale(:,kstep), &
-            stp_err_scale, last_cyc_start_step, cyc_ptcnt, cyc_fsim, cyc_fexp, cyc_time, error, e_cnt, evec_cnt, evec)
-        
-    endif
     
     deallocate(free_dofs)
     
@@ -344,19 +303,7 @@ STEP_LOOP: do kstep = 1,nstep
 end do STEP_LOOP
 
 if (error<(huge(1.d0)/10)) then ! Check that simulation succeeded before setting end values
-    evec_cnt = evec_cnt - 1                 ! Correct to get n_errors
-    f_data%sim(simnr)%n_errors = evec_cnt   ! Update n_errors
-    
-    error = error/(1.d-20+e_cnt)         ! Normalize with number of calculated increments (avoid division by zero if scale is zero for entire sim)
-    
-    if (resize_evec) then
-        allocate(evec_tmp(max(evec_cnt,1)))
-        evec_tmp = evec(1:max(evec_cnt,1))
-        deallocate(evec)
-        allocate(evec(max(evec_cnt,1)))
-        evec = evec_tmp
-        deallocate(evec_tmp)
-    endif
+    call calculate_error(f_data%sim(simnr)%err, error_hist, error_hist_comp, e_cnt, error, evec)
 endif
 
 call system_clock ( clock_count, clock_rate)

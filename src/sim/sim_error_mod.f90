@@ -5,13 +5,182 @@ use output_mod
     implicit none
     
     private
+    public error_settings_new   ! Read in error settings and allocate error_hist variable
+    public update_error         ! Append errors to the error_hist variable
+    public calculate_error      ! Calculate the simulation error based on error_hist
     
-    public error_settings       ! Read in error settings and allocate error variables
-    public error_update         ! Standard error updating
-    public cyclic_error_update  ! Special error update for cyclic error, saves data into cyc_fsim, cyc_fexp and cyc_time
-    public get_cyclic_error     ! Routine for calculating the error measures for one cycle
+    ! OLD
+    ! public error_settings       ! Read in error settings and allocate error variables
+    ! public error_update         ! Standard error updating
+    ! public cyclic_error_update  ! Special error update for cyclic error, saves data into cyc_fsim, cyc_fexp and cyc_time
+    ! public get_cyclic_error     ! Routine for calculating the error measures for one cycle
     
     contains
+
+subroutine error_settings_new(err, error_hist, error_hist_comp, error_steps, tmax, dtmain_min)
+implicit none
+    type(err_typ)                   :: err                      ! Custom type containing error settings
+    double precision, allocatable   :: error_hist(:,:)          ! Error history variable for all main steps
+    integer, allocatable            :: error_hist_comp(:,:)     ! Describes where in error_hist to put the different channels' errors
+    double precision, allocatable   :: error_steps(:)           ! Which steps to calculate the error for
+    double precision, intent(in)    :: tmax, dtmain_min         ! Total simulation time and the smallest dtmain (used to calculate maximum number of rows in error_hist if unknown)
+    
+    integer                         :: hist_rows, hist_cols, k1
+    
+    ! Determine number of rows in error_hist (i.e. how many times will an error be calculated)
+    if (err%hist_rows == -1) then            ! Unknown (first time simulation is run)
+        hist_rows = int(tmax/dtmain_min)*2+1 ! Multiplying with ratio+1 with 2 should ensure that it can never go above. Usually this will be way too big, but only runs once so should be ok
+    else                                     ! Known (simulation has been run before)
+        hist_rows = err%hist_rows
+    endif
+    
+    ! Determine number of columns in error_hist
+    ! err_scale(chnl, stp_spec)
+    allocate(error_hist_comp(2, size(err%err_scale, 1)-1))
+    error_hist_comp = 0
+    
+    hist_cols = 2   ! Step and time
+    do k1=2,size(err%err_scale, 1)  ! Loop over each channel in err_scale
+        if (any(err%err_scale(k1, :)>0.d0)) then
+            hist_cols = hist_cols + 1
+            error_hist_comp(1, k1-1) = hist_cols
+        endif
+        if (any(err%err_scale_ctrl(k1, :)>0.d0)) then
+            hist_cols = hist_cols + 1
+            error_hist_comp(2, k1-1) = hist_cols
+        endif
+    enddo
+    
+    allocate(error_hist(hist_rows, hist_cols))
+    error_hist = 0.d0
+    
+    allocate(error_steps,  source=err%err_steps)
+    
+end subroutine
+
+    
+subroutine update_error(load_exp, load, disp_exp, disp, ctrl, err_scale, err_scale_ctrl, load_scale, disp_scale, step, time, error_hist_comp, e_cnt, error_hist)
+implicit none
+    double precision, intent(in)    :: load_exp(:), load(:), disp_exp(:), disp(:)
+    integer, intent(in)             :: ctrl(:)
+    double precision, intent(in)    :: err_scale(:), err_scale_ctrl(:), load_scale(:), disp_scale(:)
+    double precision, intent(in)    :: step, time
+    integer, intent(in)             :: error_hist_comp(:,:) ! For the controlled and opposite channel, which position in error_hist should the errors go. (0=>not used)
+    integer, intent(in)             :: e_cnt ! Row in error_hist
+    double precision, intent(inout) :: error_hist(:,:)
+    
+    integer                         :: k1, k2, signvar
+    double precision                :: err_scale_both(size(err_scale), 2)
+    
+    error_hist(e_cnt, 1) = step
+    error_hist(e_cnt, 2) = time
+    
+    err_scale_both(:,1) = err_scale
+    err_scale_both(:,2) = err_scale_ctrl
+    
+    do k1=1,size(ctrl)
+        do k2=1,2
+            if (error_hist_comp(k2,k1)>0) then
+                signvar = 3-2*k2    ! +1 or -1 for k2 = 1 and 2 respectively
+                if (signvar*ctrl(k1)>0) then
+                    error_hist(e_cnt, error_hist_comp(k2,k1)) =  ( load_exp(k1) - load(k1) )*err_scale_both(k1,k2)*load_scale(k1)
+                else
+                    error_hist(e_cnt, error_hist_comp(k2,k1)) =  ( disp_exp(k1) - disp(k1) )*err_scale_both(k1,k2)*disp_scale(k1)
+                endif
+            endif
+        enddo
+    enddo
+    
+end subroutine
+
+subroutine calculate_error(err, error_hist, error_hist_comp, e_cnt, error, evec)
+implicit none
+    type(err_typ)                           :: err                      ! Custom type containing error settings
+    double precision                        :: error_hist(:,:)          ! Error history variable for all main steps
+    integer                                 :: error_hist_comp(:,:)     ! Describes where in error_hist to put the different channels' errors
+    integer                                 :: e_cnt                    ! Counter for how many errors have been calculated
+    double precision, intent(out)           :: error                    ! Calculated error
+    double precision, allocatable, optional :: evec(:)                  ! Error vector
+    
+    logical                                 :: special_evec             ! If an error_type is used that also calculates evec
+    integer                                 :: k1
+    
+    special_evec = .false.
+    
+    ! Update size of error_hist
+    if (err%hist_rows == -1) then            ! Unknown (first time simulation is run)
+        err%hist_rows = e_cnt
+    elseif (err%hist_rows.ne.e_cnt) then
+        call write_output('Error count doesn''t match from previous simulation (please save input files and report to developers)', 'warning', 'sim:err')
+        call write_output('Error calculation may be incorrect', 'warning', 'sim:err', loc=.false.)
+        err%hist_rows = e_cnt
+    endif
+    
+    ! Update scalar error
+    select case (err%error_type)
+    case (0)  ! User written subroutine for calculating error and potentially evec
+        call user_error(err, error_hist, e_cnt, error, evec)
+        special_evec = .true.
+    case (1)  ! Default type, square sum of error
+        error = sum(error_hist(:, 3:)**2)/e_cnt
+    case (2)  ! Cyclic error
+        call cyclic_error(err, error_hist, e_cnt, error, evec)
+        special_evec = .true.
+    case default
+        call write_output('error_type = '//int2str(err%error_type)//' is not supported', 'error', 'sim:err')
+    end select
+    
+    
+    ! Calculate evec if present
+    if (present(evec).and.(.not.special_evec)) then
+        allocate(evec(e_cnt*(size(error_hist,2)-2)))
+        do k1=1,size(error_hist,2)-2
+            evec(((k1-1)*e_cnt+1):(k1*e_cnt)) = error_hist(1:e_cnt, k1+2)
+        enddo
+    endif
+    
+end subroutine
+    
+subroutine user_error(err, error_hist, e_cnt, error, evec)
+implicit none
+    type(err_typ)                           :: err                      ! Custom type containing error settings
+    double precision                        :: error_hist(:,:)          ! Error history variable for all main steps
+    integer                                 :: e_cnt                    ! Counter for how many errors have been calculated
+    double precision, intent(out)           :: error                    ! Calculated error
+    double precision, allocatable, optional :: evec(:)                  ! Error vector
+    
+    error = 0.d0
+    if (present(evec)) then
+        allocate(evec(1))
+        evec = 0.d0
+    endif
+    
+    call write_output('User error not implemented, setting error to zero', 'warning', 'sim:err')
+    
+end subroutine
+
+subroutine cyclic_error(err, error_hist, e_cnt, error, evec)
+implicit none
+    type(err_typ)                           :: err                      ! Custom type containing error settings
+    double precision                        :: error_hist(:,:)          ! Error history variable for all main steps
+    integer                                 :: e_cnt                    ! Counter for how many errors have been calculated
+    double precision, intent(out)           :: error                    ! Calculated error
+    double precision, allocatable, optional :: evec(:)                  ! Error vector
+    
+    ! Step 1: Identify the cycles
+        
+    ! Step 2: Calculate the error for each cycle
+    
+    error = 0.d0
+    if (present(evec)) then
+        allocate(evec(1))
+        evec = 0.d0
+    endif
+    
+    call write_output('Cyclic error not implemented, setting error to zero', 'warning', 'sim:err')
+    
+end subroutine
+
 
 subroutine error_settings(err, psize, err_norm_met, error_steps, cyclic_error, cyc_fsim, cyc_fexp, cyc_time, cyc_ptcnt, start_step)
 implicit none
@@ -67,7 +236,7 @@ implicit none
     e_cnt = e_cnt + 1
     
 end subroutine
-                        
+
 function error_function(load_exp, load, disp_exp, disp, ctrl, stp_scale, load_scale, disp_scale) result(error)
 implicit none
     double precision, intent(in)    :: load_exp(:), load(:), disp_exp(:), disp(:)

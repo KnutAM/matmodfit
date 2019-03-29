@@ -104,7 +104,21 @@ use iso_c_binding
         integer                         :: err_norm_met=0       ! Method for scaling errors (i.e. no scaling, max-min value in cycle, max-min value in simulation)
         double precision, allocatable   :: err_scale(:,:)       ! Weight factors for different steps (step, axial, torsion, radial_inner, radial_outer)*
         double precision, allocatable   :: err_steps(:)         ! Which steps to calculate error for. error_steps=0 (default) saves for all
-        ! Cyclic error fields
+        double precision, allocatable   :: err_scale_ctrl(:,:)  ! Weight factors for error on controlled quantity (step data type) (only applicable for abs(ctrl)>1)
+        integer                         :: error_type = 1       ! Error type (0=user subroutine, 1=square error sum, 2=cyclic error)
+        
+        ! Error counting variables, set by code
+        integer                         :: hist_rows = -1           ! Used to know the size of the error_hist variable from previous simulations
+        
+        ! User subroutine error fields (error_type=0)
+        character(len=strl)             :: error_lib=''             ! Path or name of user subroutine for error calculation
+       !procedure(error_template),pointer,nopass:: error_address    ! Pointer address to error calculation subroutine
+        double precision, allocatable   :: error_usr_opt(:)         ! Settings for user error calculation
+        
+        ! Square error fields (error_type=1)
+        ! No fields required for this
+        
+        ! Cyclic error fields (error_type=2)
         logical                         :: cyclic_error=.false.     ! If cyclic error calculations should be used, default to not
         double precision                :: nstep_cyc_err_calc=1.d0  ! What difference in the step column builds up one cycle?
         double precision                :: nstep_cyc_initial=0.d0   ! What value in the step column before the first cycle?

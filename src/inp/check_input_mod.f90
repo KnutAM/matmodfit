@@ -446,6 +446,17 @@ type(err_typ)   :: err
         err%err_scale(2:,1) = DEF_err_scale
     endif
     
+    if (allocated(err%err_scale_ctrl)) then
+        if (size(err%err_scale_ctrl,1)/=(nchannels+1)) then
+            call bad_input('*err_scale_ctrl should have '//int2str(nchannels+1)//' columns')
+        endif
+    else
+        allocate(err%err_scale_ctrl((nchannels+1),1))
+        err%err_scale_ctrl(1,1) = 1.d0
+        err%err_scale_ctrl(2:,1) = 0.d0
+    endif
+    
+    
     if (.not.allocated(err%err_steps)) then
         allocate(err%err_steps(size(DEF_error_steps)))
         err%err_steps = DEF_error_steps
