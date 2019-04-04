@@ -119,7 +119,6 @@ use iso_c_binding
         ! No fields required for this
         
         ! Cyclic error fields (error_type=2)
-        logical                         :: cyclic_error=.false.     ! If cyclic error calculations should be used, default to not
         double precision                :: nstep_cyc_err_calc=1.d0  ! What difference in the step column builds up one cycle?
         double precision                :: nstep_cyc_initial=0.d0   ! What value in the step column before the first cycle?
         double precision                :: err_type_scale=0.5       ! Weight of cycle average error versus cycle shape error

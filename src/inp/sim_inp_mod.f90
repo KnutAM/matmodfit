@@ -309,14 +309,14 @@ implicit none
         call readline()
         if (end_of_subcategory()) then
             exit
+        elseif (adjustl(textline)=='*error_type') then
+            call read_int(err%error_type)
         elseif (adjustl(textline)=='*error_steps') then
             call read_dbl_vector_allocate(err%err_steps)
         elseif (adjustl(textline)=='*err_norm_met') then
             call read_int(err%err_norm_met)
         elseif (adjustl(textline)=='*err_scale') then
             call read_dbl_mvector(err%err_scale)
-        elseif (adjustl(textline)=='*cyclic_error') then
-            call read_logical(err%cyclic_error)
         elseif (adjustl(textline)=='*nstep_cyc_err_calc') then
             call read_dbl(err%nstep_cyc_err_calc)
         elseif (adjustl(textline)=='*nstep_cyc_initial') then

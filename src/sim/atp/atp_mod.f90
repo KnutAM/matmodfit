@@ -54,12 +54,11 @@ type(iter_typ)                  :: iter             ! Iteration settings
 
 ! Internal variables
  ! Error calculation
-logical                         :: eout             ! Logical if evec should be given
 integer                         :: e_cnt            ! Number of times the error is evaluated
-double precision, allocatable   :: error_hist(:,:)  ! Error history [stp, time, e1, e2, ..., eN]
-integer, allocatable            :: error_hist_comp(:,:) ! Colums in error_hist for ctrl/not ctrl and channel
-double precision                :: stp_err_scale(4) ! Current value for err_scale
-double precision                :: stp_err_scale_ctrl(4)
+double precision, allocatable   :: err_tim_hist(:,:)! Step and time for use to calculate error
+double precision, allocatable   :: err_exp_hist(:,:)! Experiment data for use to calculate error
+double precision, allocatable   :: err_sim_hist(:,:)! Simulated data for use to calculate error
+integer, allocatable            :: err_hist_comp(:) ! Colums in err_[exp/sim]_hist for disp values (load values at pos - 1)
 
  ! Time stepping
 double precision                :: stp_time_incr(4) ! Current value for time_incr (dtmain, dtmin, dt0, dtmax)
@@ -96,13 +95,6 @@ integer                         :: clock_count, clock_rate
 call system_clock ( clock_count, clock_rate)
 starttime = real(clock_count)/real(clock_rate)
 
-! == Should evec be calculated? ==
-if (present(evec)) then
-    eout = .true.
-else
-    eout = .false.
-endif
-
 ! == Material ==
 umat_address => f_data%glob%umat_address
 cmname       = f_data%glob%cmname
@@ -120,8 +112,8 @@ nstep = size(stprows)-1
 iter = f_data%sim(simnr)%iter
 
 ! Error setup, should allocate error_hist and error_steps
-call error_settings_new(f_data%sim(simnr)%err, error_hist, error_hist_comp, error_steps, &
-                        expdata(size(expdata,1), exp_info(2)), minval(iter%time_incr(2,:)))
+call error_settings(f_data%sim(simnr)%err, err_tim_hist, err_exp_hist, err_sim_hist, err_hist_comp, &
+                        error_steps, expdata(size(expdata,1), exp_info(2)), minval(iter%time_incr(2,:)))
 e_cnt = 0       ! Initiate e_cnt to zero (number of error evaluations)
 error = 0.d0    ! Set error to zero
 
@@ -163,8 +155,6 @@ STEP_LOOP: do kstep = 1,nstep
     ! Settings for current step
     call get_step_data_dbl(stp_time_incr, iter%time_incr, step)
     call get_step_data_int(stp_ctrl, f_data%sim(simnr)%exp%ctrl, step)
-    call get_step_data_dbl(stp_err_scale, f_data%sim(simnr)%err%err_scale, step)
-    call get_step_data_dbl(stp_err_scale_ctrl, f_data%sim(simnr)%err%err_scale_ctrl, step)
     
     ! Initialize current step (reset variables and read in new)
     convincr   = 0;
@@ -197,10 +187,7 @@ STEP_LOOP: do kstep = 1,nstep
         
         if (err_in_step) then
             e_cnt = e_cnt + 1
-            call update_error(load_exp, load, disp_exp, disp, stp_ctrl, stp_err_scale, stp_err_scale_ctrl, &
-                                    f_data%sim(simnr)%sim_setup%load_error_scale(:,kstep), &
-                                    f_data%sim(simnr)%sim_setup%disp_error_scale(:,kstep), &
-                                    step, time(2), error_hist_comp, e_cnt, error_hist)
+            call update_error(load_exp, load, disp_exp, disp, step, time(2), err_hist_comp, e_cnt, err_tim_hist, err_exp_hist, err_sim_hist)
         endif
         
         ! Write out results for main step if it should for current step
@@ -275,10 +262,7 @@ STEP_LOOP: do kstep = 1,nstep
         
         if (err_in_step) then
             e_cnt = e_cnt + 1
-            call update_error(load_exp, load, disp_exp, disp, stp_ctrl, stp_err_scale, stp_err_scale_ctrl, &
-                                    f_data%sim(simnr)%sim_setup%load_error_scale(:,kstep), &
-                                    f_data%sim(simnr)%sim_setup%disp_error_scale(:,kstep), &
-                                    step, time(2), error_hist_comp, e_cnt, error_hist)
+            call update_error(load_exp, load, disp_exp, disp, step, time(2), err_hist_comp, e_cnt, err_tim_hist, err_exp_hist, err_sim_hist)
         endif   ! End err_in_step
     endif   ! End kstep==nstep
 
@@ -287,9 +271,11 @@ STEP_LOOP: do kstep = 1,nstep
 end do STEP_LOOP
 
 if (error<(huge(1.d0)/10)) then ! Check that simulation succeeded before calculating error and setting end values
+    if (e_cnt>0) then
+        call calculate_error(f_data%sim(simnr)%err, f_data%sim(simnr)%exp%ctrl, &
+                             err_tim_hist, err_exp_hist, err_sim_hist, err_hist_comp, e_cnt, error, evec)
+    endif
     
-    call calculate_error(f_data%sim(simnr)%err, error_hist, error_hist_comp, e_cnt, error, evec)
-
     ! Export end values
     call atp_export_end(f_data, simnr, u, gp_s, gp_strain, gp_F, gp_sv, disp, load, h0)
 
