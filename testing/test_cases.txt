@@ -1,6 +1,6 @@
 Case ID     input_file[w/o suffix]      max_error       max_time[s]     Comment
     001                   test_01            1e-5               2.0     Abaqus run with built-in model
-    002                   test_02            1e-5               2.0     Abaqus run with built-in model
+    002                   test_02            3e-5               2.0     Abaqus run with built-in model (Changed to cyclic error 2019-04-04)
     003                   test_03            1e-6               2.0     Abaqus run with umat (otherwise same as Case 1)
     004                   test_04            1e-6               2.0     Internal/External strain only
     005                   test_05            1e-6               2.0     Finite strain, all combined

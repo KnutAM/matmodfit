@@ -25,6 +25,8 @@ chaboche
  *abaqus_bbar
 1
 <<err>>
+ *error_type
+2
  *err_norm_met
 2
 <<exp>>
