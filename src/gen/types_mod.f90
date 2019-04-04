@@ -122,7 +122,6 @@ use iso_c_binding
         double precision                :: nstep_cyc_err_calc=1.d0  ! What difference in the step column builds up one cycle?
         double precision                :: nstep_cyc_initial=0.d0   ! What value in the step column before the first cycle?
         double precision                :: err_type_scale=0.5       ! Weight of cycle average error versus cycle shape error
-        integer                         :: n_cyc_err = 300          ! Size of error for the longest cycle (not user settable, updated if needed)
         
     end type err_typ
     
@@ -144,13 +143,13 @@ use iso_c_binding
         
         ! Additional output
         integer, allocatable            :: output_nodes(:)          ! Which nodes to output from (default is all) (Only applicable to atp simulation, ignored for mps)
-        logical                         :: ur=.false.               ! Should radial displacements be output?
+        logical                         :: ur=.false.               ! Should radial displacements be output? (ignored for mps)
         integer, allocatable            :: output_elems(:)          ! Which elements to output from. Always all integration points. (Only applicable to atp simulation, ignored for mps)
-        logical                         :: stress=.false.           ! Should stress be output?
+        logical                         :: stress=.false.           ! Should stress be output? (ignored for mps)
         integer, allocatable            :: stress_comp(:)           ! Which stress components to output. nlgeom: (11,22,33,12,32,31,13,21,32), else (11,22,33,12,13,23)
-        logical                         :: strain=.false.           ! Should strain be output?
+        logical                         :: strain=.false.           ! Should strain be output? (ignored for mps)
         integer, allocatable            :: strain_comp(:)           ! Which strain components to output. nlgeom: (11,22,33,12,32,31), else (11,22,33,12,13,23)
-        logical                         :: dfgrd=.false.            ! Should deformation gradient be output?
+        logical                         :: dfgrd=.false.            ! Should deformation gradient be output? (ignored for mps)
         integer, allocatable            :: dfgrd_comp(:)            ! Which deformation gradient components to output. Always: (11,22,33,12,32,31,13,21,32)
         logical                         :: statev=.false.           ! Should state variables be output?
         integer, allocatable            :: statev_comp(:)           ! Which state variable components to output.
