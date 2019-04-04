@@ -207,9 +207,7 @@ STEP_LOOP: do kstep = 1,nstep
         
         ! Write out results for the main increment if it should for current step
         if (res_in_step) then
-            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, &
-                             reshape(load, [size(load), 1, 1]), reshape(disp, [size(disp), 1, 1]), &    ! Stress and strain
-                             reshape(disp, [9, 1, 1], pad=[0.d0]), reshape(stat, [size(stat), 1, 1]))      ! Deformation gradient and state variables
+            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, reshape(stat, [size(stat), 1, 1]))
         endif
         
         do while (.not.laststep)
@@ -245,9 +243,7 @@ STEP_LOOP: do kstep = 1,nstep
                 
                 ! Write out results if that is requested for current simulation/step/increment, and it is not the laststep (then it will be written later)
                 if ((res_in_step).and.(.not.result_onlymain).and.(.not.laststep)) then
-                    call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, &
-                                        reshape(load, [size(load), 1, 1]), reshape(disp, [size(disp), 1, 1]), &    ! Stress and strain
-                                        reshape(disp, [9, 1, 1], pad=[0.d0]), reshape(stat, [size(stat), 1, 1]))      ! Deformation gradient and state variables
+                    call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, reshape(stat, [size(stat), 1, 1]))
                 endif
                 
                 ! Update time stepping
@@ -277,9 +273,7 @@ STEP_LOOP: do kstep = 1,nstep
     if (kstep==nstep) then
         ! Write out results for last main step in last step, if it should for this step
         if (res_in_step) then
-            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, &
-                                reshape(load, [size(load), 1, 1]), reshape(disp, [size(disp), 1, 1]), &    ! Stress and strain
-                                reshape(disp, [9, 1, 1], pad=[0.d0]), reshape(stat, [size(stat), 1, 1]))      ! Deformation gradient and state variables
+            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, reshape(stat, [size(stat), 1, 1]))
         endif
         
         if (err_in_step) then

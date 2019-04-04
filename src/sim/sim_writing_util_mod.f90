@@ -29,7 +29,7 @@ implicit none
     
 end subroutine
 
-subroutine write_result(step, incr, niter, time, temp, load, load_exp, disp, disp_exp, outp, gp_stress, gp_strain, gp_dfgrd, gp_statev, ur)
+subroutine write_result(step, incr, niter, time, temp, load, load_exp, disp, disp_exp, outp, gp_statev, gp_stress, gp_strain, gp_dfgrd, ur)
     implicit none
 !   character(len=20), parameter :: format_spec = '(p1,E15.5E3)'
     double precision, intent(in) :: step
@@ -37,10 +37,10 @@ subroutine write_result(step, incr, niter, time, temp, load, load_exp, disp, dis
     double precision, intent(in) :: time, temp, disp(:), disp_exp(:), load(:), load_exp(:)
     type(outp_typ), intent(in)   :: outp
     ! Additional output. For mps simulation use (e.g. for stress) reshape(stress, [size(stress), 1, 1])
-    double precision, intent(in) :: gp_stress(:,:,:)
-    double precision, intent(in) :: gp_strain(:,:,:)
-    double precision, intent(in) :: gp_dfgrd(:,:,:)
     double precision, intent(in) :: gp_statev(:,:,:)
+    double precision, optional, intent(in) :: gp_stress(:,:,:)
+    double precision, optional, intent(in) :: gp_strain(:,:,:)
+    double precision, optional, intent(in) :: gp_dfgrd(:,:,:)
     double precision, optional, intent(in) :: ur(:)
     ! Internal variables
     integer                      :: k1, iel, igp
@@ -81,17 +81,17 @@ subroutine write_result(step, incr, niter, time, temp, load, load_exp, disp, dis
     !Write gauss point output
     do k1=1,size(outp%output_elems)
         iel = outp%output_elems(k1)
-        do igp=1,size(gp_stress,2)
+        do igp=1,size(gp_statev,2)
             ! Stress output
-            if (outp%stress) then
+            if (outp%stress.and.present(gp_stress)) then
                 call write_gp_output(igp, iel, gp_stress, outp%stress_comp)
             endif
             ! Strain output
-            if (outp%strain) then
+            if (outp%strain.and.present(gp_strain)) then
                 call write_gp_output(igp, iel, gp_strain, outp%strain_comp)
             endif
             ! Deformation gradient output
-            if (outp%dfgrd) then
+            if (outp%dfgrd.and.present(gp_dfgrd)) then
                 call write_gp_output(igp, iel, gp_dfgrd, outp%dfgrd_comp)
             endif
             ! State variable output
