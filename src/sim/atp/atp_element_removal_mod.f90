@@ -317,6 +317,8 @@ implicit none
         f_data_relax%sim(1)%exp%ctrl(4,1) = 1
     endif
     
+    ! Reset error count to avoid wrong dimensioning of error vector sizes
+    f_data_relax%sim(1)%err%hist_rows = -1
     
     call atp_simulate(error, props, f_data_relax, 1)
     if (error>(huge(1.d0)/10)) then
