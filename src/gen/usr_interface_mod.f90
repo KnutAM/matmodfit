@@ -78,12 +78,11 @@ module usr_interface_mod
         end subroutine
         
         ! Interface for error calculation
-        subroutine user_error_template(settings, ctrl, e_cnt, err_tim_hist, err_exp_hist, err_sim_hist, err_hist_comp, error, evec)
+        subroutine user_error_template(settings, ctrl, err_tim_hist, err_exp_hist, err_sim_hist, err_hist_comp, error, evec)
             double precision, intent(in)            :: settings(:)              ! Settings given by err%user_settings
             double precision, intent(in)            :: ctrl(:,:)                ! Control information
             double precision, intent(inout)         :: err_tim_hist(:,:), err_exp_hist(:,:), err_sim_hist(:,:)
             integer                                 :: err_hist_comp(:)         ! Describes where in err_[sim/exp]_hist the disp values are put (load values are put at pos-1)
-            integer                                 :: e_cnt                    ! Counter for how many errors have been calculated
             double precision, intent(out)           :: error                    ! Calculated error
             double precision, allocatable, optional :: evec(:)                  ! Error vector
         end subroutine

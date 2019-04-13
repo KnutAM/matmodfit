@@ -123,11 +123,11 @@ implicit none
     procedure(user_error_template),pointer  :: usr_error ! Address to user subroutine
     
     usr_error => err%error_address
-            
+    
     if (present(evec)) then
-        call usr_error(err%user_settings, ctrl, e_cnt, err_tim_hist, err_exp_hist, err_sim_hist, err_hist_comp, error, evec)
+        call usr_error(err%user_settings, ctrl, err_tim_hist(1:e_cnt,:), err_exp_hist(1:e_cnt,:), err_sim_hist(1:e_cnt,:), err_hist_comp, error, evec)
     else
-        call usr_error(err%user_settings, ctrl, e_cnt, err_tim_hist, err_exp_hist, err_sim_hist, err_hist_comp, error)
+        call usr_error(err%user_settings, ctrl, err_tim_hist(1:e_cnt,:), err_exp_hist(1:e_cnt,:), err_sim_hist(1:e_cnt,:), err_hist_comp, error)
     endif
     
 end subroutine
