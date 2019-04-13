@@ -11,8 +11,11 @@ module usr_interface_mod
     ! Simulation routine
     public :: user_sim_template
     
-    !Optimization routine
+    ! Optimization routine
     public :: user_opt_template
+    
+    ! Error routine
+    public :: user_error_template
     
     
     abstract interface
@@ -72,6 +75,17 @@ module usr_interface_mod
             double precision, allocatable, intent(in)   :: user_data(:)     ! User data to be used as optimization settings
             double precision, intent(out)               :: error            ! Error at optimized parameters
             type(c_ptr)                                 :: f_data           ! Data to be used in simulation, to be passed as pointer in user routines
+        end subroutine
+        
+        ! Interface for error calculation
+        subroutine user_error_template(settings, ctrl, e_cnt, err_tim_hist, err_exp_hist, err_sim_hist, err_hist_comp, error, evec)
+            double precision, intent(in)            :: settings(:)              ! Settings given by err%user_settings
+            double precision, intent(in)            :: ctrl(:,:)                ! Control information
+            double precision, intent(inout)         :: err_tim_hist(:,:), err_exp_hist(:,:), err_sim_hist(:,:)
+            integer                                 :: err_hist_comp(:)         ! Describes where in err_[sim/exp]_hist the disp values are put (load values are put at pos-1)
+            integer                                 :: e_cnt                    ! Counter for how many errors have been calculated
+            double precision, intent(out)           :: error                    ! Calculated error
+            double precision, allocatable, optional :: evec(:)                  ! Error vector
         end subroutine
         
     end interface

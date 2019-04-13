@@ -112,8 +112,8 @@ use iso_c_binding
         
         ! User subroutine error fields (error_type=0)
         character(len=strl)             :: error_lib=''             ! Path or name of user subroutine for error calculation
-       !procedure(error_template),pointer,nopass:: error_address    ! Pointer address to error calculation subroutine
-        double precision, allocatable   :: error_usr_opt(:)         ! Settings for user error calculation
+        procedure(user_error_template),pointer,nopass:: error_address    ! Pointer address to error calculation subroutine
+        double precision, allocatable   :: user_settings(:)         ! Settings for user error calculation
         
         ! Square error fields (error_type=1)
         ! No fields required for this

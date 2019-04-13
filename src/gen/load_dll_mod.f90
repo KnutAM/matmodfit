@@ -9,6 +9,7 @@ use usr_interface_mod
     public  :: load_user_scaling
     public  :: load_user_sim
     public  :: load_user_opt
+    public  :: load_user_error
     
     contains
     
@@ -74,6 +75,21 @@ use usr_interface_mod
         call load_user_library(fun_cptr, path_name, fun_name)
 		
         call c_f_procpointer(transfer(fun_cptr(1), c_null_funptr), opt_addr)
+        
+    end subroutine
+    
+    subroutine load_user_error(path_name, err_addr)
+    implicit none
+        character(len=*)                    :: path_name    ! dynamically linked library name
+        procedure(user_error_template),pointer:: err_addr     ! Pointer address to user_opt subroutine
+        type(c_funptr), allocatable         :: fun_cptr(:)  ! C-type pointers to the dll's subroutines
+        character(len=20)                   :: fun_name(1)  ! Names of functions
+        
+        fun_name(1) = 'uerror'
+        
+        call load_user_library(fun_cptr, path_name, fun_name)
+		
+        call c_f_procpointer(transfer(fun_cptr(1), c_null_funptr), err_addr)
         
     end subroutine
     

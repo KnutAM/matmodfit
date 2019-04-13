@@ -1,3 +1,4 @@
+! Interfaces used internally (e.g. when setting up the optimization user interface, requiring the simulation interface)
 module interface_mod
     implicit none
     

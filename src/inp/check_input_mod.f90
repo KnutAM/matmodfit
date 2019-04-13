@@ -462,6 +462,16 @@ type(err_typ)   :: err
         err%err_steps = DEF_error_steps
     endif
     
+    if (.not.allocated(err%user_settings)) then
+        allocate(err%user_settings(1))
+        err%user_settings(1) = 0.d0
+    endif
+    
+    if (.not.(err%error_lib=='')) then
+        err%error_type = 0  ! Set to user error if library has been specified
+    endif
+    
+    
 end subroutine
 
 subroutine check_sim_outp(outp)

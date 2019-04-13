@@ -317,6 +317,11 @@ implicit none
             call read_int(err%err_norm_met)
         elseif (adjustl(textline)=='*err_scale') then
             call read_dbl_mvector(err%err_scale)
+        elseif (adjustl(textline)=='*error_lib') then
+            call read_str(err%error_lib, strl)
+            call load_user_error(err%error_lib, err%error_address)
+        elseif (adjustl(textline)=='*user_settings') then
+            call read_dbl_vector_allocate(err%user_settings)
         elseif (adjustl(textline)=='*nstep_cyc_err_calc') then
             call read_dbl(err%nstep_cyc_err_calc)
         elseif (adjustl(textline)=='*nstep_cyc_initial') then

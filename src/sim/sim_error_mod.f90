@@ -3,6 +3,7 @@ use gen_util_mod
 use types_mod
 use output_mod
 use sim_getincr_mod
+use usr_interface_mod
     implicit none
     
     private
@@ -119,14 +120,15 @@ implicit none
     integer                                 :: e_cnt                    ! Counter for how many errors have been calculated
     double precision, intent(out)           :: error                    ! Calculated error
     double precision, allocatable, optional :: evec(:)                  ! Error vector
+    procedure(user_error_template),pointer  :: usr_error ! Address to user subroutine
     
-    error = 0.d0
+    usr_error => err%error_address
+            
     if (present(evec)) then
-        allocate(evec(1))
-        evec = 0.d0
+        call usr_error(err%user_settings, ctrl, e_cnt, err_tim_hist, err_exp_hist, err_sim_hist, err_hist_comp, error, evec)
+    else
+        call usr_error(err%user_settings, ctrl, e_cnt, err_tim_hist, err_exp_hist, err_sim_hist, err_hist_comp, error)
     endif
-    
-    call write_output('User error not implemented, setting error to zero', 'warning', 'sim:err')
     
 end subroutine
 
