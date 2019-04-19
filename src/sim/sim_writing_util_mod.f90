@@ -137,8 +137,8 @@ implicit none
     type(outp_typ), intent(in)   :: outp
     ! Internal variables
     character*4             :: stp_str, inc_str, nit_str, tim_str, temp_str
-    character*6,allocatable :: load_str(:), disp_str(:), stress_str(:), statev_str(:)
-    character*6             :: strain_str(6), dfgrd_str(9)
+    character*6,allocatable :: load_str(:), disp_str(:), statev_str(:)
+    character*6             :: strain_str(6), stress_str(6), dfgrd_str(9)
     character*40            :: add_str
     integer                 :: k1, col, outp_len, iel, igp
     character(len=100)      :: tmp_str
@@ -159,13 +159,10 @@ implicit none
     
     ! Gauss point output headers
     dfgrd_str = ['F11', 'F22', 'F33', 'F12', 'F23', 'F31', 'F13', 'F21', 'F31']
+    stress_str = ['sig11', 'sig22', 'sig33', 'sig12', 'sig13', 'sig23']
     if (nlgeom) then
-        allocate(stress_str(9))
-        stress_str = ['P11', 'P22', 'P33', 'P12', 'P23', 'P31', 'P13', 'P21', 'P31']
         strain_str = ['E11', 'E22', 'E33', 'E12', 'E23', 'E31']
     else
-        allocate(stress_str(6))
-        stress_str = ['sig11', 'sig22', 'sig33', 'sig12', 'sig13', 'sig23']
         strain_str = ['eps11', 'eps22', 'eps33', 'gam12', 'gam13', 'gam23']
     endif
     
@@ -278,7 +275,7 @@ implicit none
     
 
     do k1=1,size(gp_comp)
-        write(fid_res, dblhead_str_format, advance="no") trim(prefix)//trim(gp_str(k1))//'('//int2str(col)//')'
+        write(fid_res, dblhead_str_format, advance="no") trim(prefix)//trim(gp_str(gp_comp(k1)))//'('//int2str(col)//')'
         col = col + 1
     enddo
 

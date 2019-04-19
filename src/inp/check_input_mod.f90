@@ -480,7 +480,7 @@ implicit none
     character(len=50)   :: tmpstr
     integer             :: outpstatus
     integer             :: k1
-    integer             :: default_comp(4)
+    integer             :: default_comp(4), default_comp_sigma(4)
 
     if (.not.allocated(outp%result_steps)) then
         allocate(outp%result_steps(size(DEF_result_steps)))
@@ -504,9 +504,10 @@ implicit none
     else
         default_comp = [1,2,3,6]    ! 23 shear component at position 6
     endif
+    default_comp_sigma = [1,2,3,6]  ! Sigma is always in abaqus voigt ordering, i.e. linear geometry
         
     call add_outp_allocation(outp%output_nodes, outp%ur, [-nnod])
-    call add_outp_allocation(outp%stress_comp, outp%stress, default_comp)
+    call add_outp_allocation(outp%stress_comp, outp%stress, default_comp_sigma)
     call add_outp_allocation(outp%strain_comp, outp%strain, default_comp)
     call add_outp_allocation(outp%dfgrd_comp, outp%dfgrd, default_comp)
     call add_outp_allocation(outp%statev_comp, outp%statev, [-nstatv])
