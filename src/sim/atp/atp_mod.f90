@@ -226,7 +226,7 @@ STEP_LOOP: do kstep = 1,nstep
 
                 ! Write out results if that is requested for current simulation/step/increment for steps that are not main steps
                 if ((res_in_step).and.(.not.result_onlymain).and.(.not.laststep)) then
-                    call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, gp_sv0, gp_s, gp_strain, gp_F, u(3:size(u)))
+                    call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, gp_sv, gp_s, gp_strain, gp_F, u(3:size(u)))
                 endif
                 
                 ! Update time stepping
@@ -257,7 +257,7 @@ STEP_LOOP: do kstep = 1,nstep
     if (kstep==nstep) then
         ! Write out results for last main step in last step, if it should for this step
         if (res_in_step) then
-            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, gp_s, gp_strain, gp_F, gp_sv, u(3:size(u)))
+            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, gp_sv, gp_s, gp_strain, gp_F, u(3:size(u)))
         endif
         
         if (err_in_step) then
