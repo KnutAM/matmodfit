@@ -85,10 +85,9 @@ do k1=1,size(ctrl)
         if (abs(ctrl(k1))==2) then  !Shift exp data to match calculated start
             adjustment(1,k1) = vc1-ve1
         elseif (abs(ctrl(k1))==3) then  !Scale exp data to match calculated start and exp data end
-            !adjustment(2,k1) = (1.d0 - vc1/ve1)/(times(2)-times(1))
-            !adjustment(1,k1) = 1.d0 - adjustment(2,k1)*times(2)
-            adjustment(1,k1) = -( 1.d0 + times(1)/(times(2)-times(1)) )*(ve1-vc1)
-            adjustment(2,k1) = (ve1-vc1)/(times(2)-times(1))
+            ! c(t) = e(t) + ((t2-t)/(t2-t1))*(s1-e1) = e(t) + (t2/(t2-t1))*(s1-e1) + t*(-1/(t2-t1))*(s1-e1)
+            adjustment(1,k1) = (times(2)/(times(2)-times(1)))*(vc1-ve1)
+            adjustment(2,k1) = (-1.d0/(times(2)-times(1)))*(vc1-ve1)
         else
             call write_output('abs(ctrl)>3 not supported', 'error', 'atp')
         endif
@@ -197,7 +196,6 @@ if (ctrl_check<=1) then
 elseif (ctrl_check==2) then
     val_adjusted = val + adjustment(1)
 elseif (ctrl_check==3) then
-    !val_adjusted = val*(adjustment(1) + adjustment(2)*time)
     val_adjusted = val + adjustment(1) + adjustment(2)*time
 else
     call write_output('abs(ctrl)>3 not supported', 'error', 'atp')
