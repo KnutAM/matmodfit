@@ -181,12 +181,6 @@ implicit none
             disp = (/u0(1)/h0, u0(2), u0(3)/rpos(1,1), u0(size(u0))/rpos(size(rpos,1), size(rpos,2))/)
         endif
         call atp_export_end(f_data, simnr, u0, gp_stress, gp_strain, gp_F, gp_sv, disp, load, h0)
-        write(*,*) 'el2:ip1:F[1,2,3,5]'
-        write(*,*) gp_F([1,2,3,5],1,2)
-        write(*,*) 'u'
-        write(*,*) u0
-        write(*,*) 'node_pos'
-        write(*,*) [rpos(1,:), rpos(2, size(rpos,2))]
    
         ! Relax 
         call atp_relax(relx_conv, props, f_data, simnr, simnr, f_data_relax, '_relax'//int2str(simnr)//'_'//int2str(k1), rpos)
@@ -230,8 +224,6 @@ implicit none
         error = huge(1.d0)
     else
         call set_end_values(f_data_relax%sim(1), f_data%sim(simnr))
-        write(*,*) f_data_relax%sim(1)%end_res%dfgrd_end(2,:)
-        write(*,*) f_data_relax%sim(1)%end_res%u_end
     endif
     
 
@@ -524,13 +516,6 @@ implicit none
             ! Interpolation: v = v(r0old-) + (v(rold+)-v(rold-))*mult_factor
             gp_stress(:,igp,iel) = f_data_old%sim(1)%end_res%stress_end(ind_old-1, :) &
                 + (f_data_old%sim(1)%end_res%stress_end(ind_old,:)-f_data_old%sim(1)%end_res%stress_end(ind_old-1,:))*mult_factor
-            if ((simnr==4).and.(iel==2)) then
-                write(*,*) 'interpolation data s33'
-                write(*,*) gp_stress(3,igp,iel)
-                write(*,*) gp_pos0(ind)
-                write(*,*) f_data_old%sim(1)%end_res%stress_end([ind_old-1,ind_old], 3)
-                write(*,*) gp_pos0_old([ind_old-1, ind_old])
-            endif
             
             gp_sv(:,igp,iel) = f_data_old%sim(1)%end_res%statev_end(ind_old-1, :) &
                 + (f_data_old%sim(1)%end_res%statev_end(ind_old,:)-f_data_old%sim(1)%end_res%statev_end(ind_old-1,:))*mult_factor
@@ -623,12 +608,14 @@ implicit none
     
     if (xv(1)<x(1)-numtol) then
         call write_output('Interpolation failed, x(1) must be <= xv(1)', 'status', 'sim:atp_element_removal')
+        call write_output('x(1)='//dbl2str(x(1))//', xv(1)='//dbl2str(xv(1)), 'status', 'sim:atp_element_removal', loc=.false.)
         interpolate_failed = .true.
         return
     endif
     
     if (xv(num_out_points)>x(num_base_points)+numtol) then
         call write_output('Interpolation failed, x(end) must be >= xv(end)', 'status', 'sim:atp_element_removal')
+        call write_output('x(end)='//dbl2str(x(num_out_points))//', xv(end)='//dbl2str(xv(num_base_points)), 'status', 'sim:atp_element_removal', loc=.false.)
         interpolate_failed = .true.
         return
     endif
