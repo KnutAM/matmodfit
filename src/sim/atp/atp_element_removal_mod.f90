@@ -164,7 +164,7 @@ implicit none
         endif
         
         ! Solve zero displacement increment
-        call solve_incr(rpos, h0, load, disp, f_data%sim(1)%init%temp_init, 0.d0, time, f_data%sim(1)%atp_er%time_remesh, free_dofs, &
+        call solve_incr(rpos, h0, load, disp, f_data%sim(simnr)%init%temp_init, 0.d0, time, f_data%sim(simnr)%atp_er%time_remesh, free_dofs, &
                free_dofs, gp_F, gp_stress, gp_sv, gp_strain, u0, du, f_data%sim(1)%iter, niter, lconv, pnewdt, &
                k1, 1, props, f_data%glob%cmname, f_data%glob%umat_address, f_data%glob%nlgeom, iter_err_norm)
     
@@ -175,11 +175,18 @@ implicit none
    
         ! Set end values in f_data%sim(simnr)
         f_data%sim(simnr)%mesh1d%h0 = h0
-        disp = (/u0(1)/h0, u0(2), u0(3)/rpos(1,1), u0(size(u0))/rpos(size(rpos,1), size(rpos,2))/)
-        if (new_is_solid) then
-            disp(3) = 0.d0
+        if (new_is_solid) then  ! Set disp(3) = 0
+            disp = (/u0(1)/h0, u0(2), u0(3)*0.0, u0(size(u0))/rpos(size(rpos,1), size(rpos,2))/)
+        else
+            disp = (/u0(1)/h0, u0(2), u0(3)/rpos(1,1), u0(size(u0))/rpos(size(rpos,1), size(rpos,2))/)
         endif
         call atp_export_end(f_data, simnr, u0, gp_stress, gp_strain, gp_F, gp_sv, disp, load, h0)
+        write(*,*) 'el2:ip1:F[1,2,3,5]'
+        write(*,*) gp_F([1,2,3,5],1,2)
+        write(*,*) 'u'
+        write(*,*) u0
+        write(*,*) 'node_pos'
+        write(*,*) [rpos(1,:), rpos(2, size(rpos,2))]
    
         ! Relax 
         call atp_relax(relx_conv, props, f_data, simnr, simnr, f_data_relax, '_relax'//int2str(simnr)//'_'//int2str(k1), rpos)
@@ -195,7 +202,7 @@ implicit none
             geom_conv = .true.
             error = 0.d0
             exit GEOM_ITER_LOOP
-        elseif (k1==1) then
+        elseif (k1>0) then
             ! First iteration - fix point update
             node_pos_guess_old = node_pos_guess
             node_pos_result_old = node_pos_result
@@ -223,6 +230,8 @@ implicit none
         error = huge(1.d0)
     else
         call set_end_values(f_data_relax%sim(1), f_data%sim(simnr))
+        write(*,*) f_data_relax%sim(1)%end_res%dfgrd_end(2,:)
+        write(*,*) f_data_relax%sim(1)%end_res%u_end
     endif
     
 
@@ -310,6 +319,11 @@ implicit none
     ! Set new node positions if input
     if (present(rpos)) then
         f_data_relax%sim(1)%mesh1d%node_pos = (/rpos(1,:), rpos(size(rpos,1),size(rpos,2))/)
+    elseif (f_data%sim(simnr_old)%init%cont_analysis<0) then
+        ! if rpos is not present, this is the first relax. 
+        ! If we relax from a continued analysis we must account for that the mesh is given for the deformed configuration
+        ! Otherwise, if rpos is given we have the correct (initial) mesh (including correct (initial) h0)
+        f_data_relax%sim(1)%init%cont_analysis = -1 
     endif
     
     ! If sample is zero, don't allow changing the inner radius
@@ -427,6 +441,7 @@ implicit none
     double precision, allocatable   :: dNpdR(:), Np(:), ue_r(:)
     double precision, allocatable   :: Bs_mat(:,:)
     integer, allocatable            :: dof(:)
+    double precision                :: hold                 ! Height (gauge length) for old simulation
     
     integer                         :: res_fid              ! Result file fid
     character(len=30)               :: format_spec          ! Writing format
@@ -443,8 +458,6 @@ implicit none
     ndof        = ntnod + 2
     ndof_old    = ntnod_old + 2
     
-    ! Set height to actual from old simulation (no need to adjust rotation or axial displacement values)
-    h0          = f_data_old%sim(1)%end_res%h0_true 
     
     ! Calculate the full r0 from r0outer
     allocate(r0(ntnod))
@@ -460,16 +473,26 @@ implicit none
     
     ! Get old node coordinates
     allocate(r0_old(ntnod_old))
-    r0_old(1:(ntnod_old):(nenod_old-1)) = f_data_old%sim(1)%mesh1d%node_pos
-    if (nenod_old==3) then   ! Need to assign internal element nodal coordinates
-        r0_old(2:(ntnod_old-1):2) = (r0_old(1:(ntnod_old-2):2) + r0_old(3:(ntnod_old):2))/2.d0
+    if (f_data_old%sim(1)%init%cont_analysis<0) then    
+        ! Need to treat if the old simulation is continued<0 such that node_pos are not the initial positions!
+        r0_old(1:(ntnod_old):(nenod_old-1)) = f_data_old%sim(1)%mesh1d%node_pos - f_data_old%sim(1)%end_res%u_end(3:ndof_old:(nenod_old-1))
+        if (nenod_old==3) then   ! Need to assign internal element nodal coordinates
+            r0_old(2:(ntnod_old-1):2) = (r0_old(1:(ntnod_old-2):2) + r0_old(3:(ntnod_old):2))/2.d0 - f_data_old%sim(1)%end_res%u_end(4:(ndof_old-1):2)
+        endif
+    else
+        r0_old(1:(ntnod_old):(nenod_old-1)) = f_data_old%sim(1)%mesh1d%node_pos
+        if (nenod_old==3) then   ! Need to assign internal element nodal coordinates
+            r0_old(2:(ntnod_old-1):2) = (r0_old(1:(ntnod_old-2):2) + r0_old(3:(ntnod_old):2))/2.d0
+        endif
     endif
     
-    ! Interpolate the displacements
+    ! Interpolate the displacements and get height
     allocate(u0_old(ntnod_old+2))
     u0_old = f_data_old%sim(1)%end_res%u_end
     u0(3:ndof) = interpolate(r0_old, u0_old(3:ndof_old), r0)
-    u0(1:2) = u0_old(1:2)
+    hold       = f_data_old%sim(1)%end_res%h0_true ! Height for which old displacements given
+    h0         = f_data%sim(simnr)%mesh1d%h0/(1 + u0_old(1)/hold)
+    u0(1:2)    = u0_old(1:2)*h0/hold
     
     ! Calculate the gauss point coordinates
     allocate(gp_pos0_old(ngp_old*nel_old), gp_pos0(ngp*nel))
@@ -491,7 +514,7 @@ implicit none
         
         do igp = 1,ngp
             ! Interpolation (not in function for efficiency, same multiplication factor)
-            do while ((gp_pos0(ind)>gp_pos0_old(ind_old)).and.((ind_old+1)<size(gp_pos0_old)))
+            do while ((gp_pos0(ind)>gp_pos0_old(ind_old)).and.(ind_old<size(gp_pos0_old)))
                 ind_old = ind_old + 1
             enddo
             ! Common multiplication factor for interpolation: ( r0 - (r0old-) )/( (r0old+) - (r0old-) )
@@ -501,6 +524,13 @@ implicit none
             ! Interpolation: v = v(r0old-) + (v(rold+)-v(rold-))*mult_factor
             gp_stress(:,igp,iel) = f_data_old%sim(1)%end_res%stress_end(ind_old-1, :) &
                 + (f_data_old%sim(1)%end_res%stress_end(ind_old,:)-f_data_old%sim(1)%end_res%stress_end(ind_old-1,:))*mult_factor
+            if ((simnr==4).and.(iel==2)) then
+                write(*,*) 'interpolation data s33'
+                write(*,*) gp_stress(3,igp,iel)
+                write(*,*) gp_pos0(ind)
+                write(*,*) f_data_old%sim(1)%end_res%stress_end([ind_old-1,ind_old], 3)
+                write(*,*) gp_pos0_old([ind_old-1, ind_old])
+            endif
             
             gp_sv(:,igp,iel) = f_data_old%sim(1)%end_res%statev_end(ind_old-1, :) &
                 + (f_data_old%sim(1)%end_res%statev_end(ind_old,:)-f_data_old%sim(1)%end_res%statev_end(ind_old-1,:))*mult_factor
@@ -523,20 +553,24 @@ implicit none
         
         ! Print old nodal values
         format_spec = '('//int2str(size(r0_old))//'ES15.5E3)'
+        format_spec = f_data%sim(simnr)%outp%dbl_format
+        format_spec = '('//int2str(size(r0_old))//trim(format_spec(2:len(format_spec)))
         write(res_fid, "(A)") 'Old nodal values (rows = node positions, displacements)'
         write(res_fid, format_spec) r0_old
         write(res_fid, format_spec) u0_old(3:)
         write(res_fid, *) ''    ! Line break
         
         ! Print new nodal values
-        format_spec = '('//int2str(size(r0))//'ES15.5E3)'
+        format_spec = f_data%sim(simnr)%outp%dbl_format
+        format_spec = '('//int2str(size(r0))//trim(format_spec(2:len(format_spec)))
         write(res_fid, "(A)") 'New nodal values (rows = node positions, displacements)'
         write(res_fid, format_spec) r0
         write(res_fid, format_spec) u0(3:)
         write(res_fid, *) ''    ! Line break
         
         ! Print the old gauss point values
-        format_spec = '('//int2str(size(gp_pos0_old))//'ES15.5E3)'
+        format_spec = f_data%sim(simnr)%outp%dbl_format
+        format_spec = '('//int2str(size(gp_pos0_old))//trim(format_spec(2:len(format_spec)))
         write(res_fid, "(A)") 'Old gauss point values (rows = node positions, stress(6), '
         write(res_fid, "(A)") 'strain(6), deformation gradient(9) and state variables ('//int2str(f_data%glob%nstatv)//'))'
         write(res_fid, format_spec) gp_pos0_old
@@ -551,7 +585,8 @@ implicit none
         write(res_fid, *) ''    ! Line break
         
         ! Print the new gauss point values
-        format_spec = '('//int2str(size(gp_pos0))//'ES15.5E3)'
+        format_spec = f_data%sim(simnr)%outp%dbl_format
+        format_spec = '('//int2str(size(gp_pos0))//trim(format_spec(2:len(format_spec)))
         write(res_fid, "(A)") 'New gauss point values (rows = node positions, stress(6), '
         write(res_fid, "(A)") 'strain(6), deformation gradient(9) and state variables ('//int2str(f_data%glob%nstatv)//'))'
         write(res_fid, format_spec) gp_pos0
