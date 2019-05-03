@@ -389,6 +389,7 @@ double precision    :: ctrl(:,:)
         elseif (any(mesh1d%node_pos(2:size(mesh1d%node_pos))<=mesh1d%node_pos(1:(size(mesh1d%node_pos)-1)))) then
             call bad_input('node_pos must be monotonically strictly increasing')
         endif
+        allocate(mesh1d%node_pos_undef, source=mesh1d%node_pos)
     else
         call bad_input('node_pos must be defined')
     endif

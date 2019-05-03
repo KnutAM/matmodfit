@@ -13,7 +13,7 @@ module atp_import_mod
 !Import mesh
 subroutine atp_import_mesh(mesh1d, len_adj, adj_geom, u0, h0, ngp, bbar, nnod, nel, ndof_tot, Rpos, disp_conv, iter_err_norm)
     implicit none
-    type(mesh1d_typ), intent(in)    :: mesh1d
+    type(mesh1d_typ), intent(inout) :: mesh1d
     double precision, intent(in)    :: len_adj, u0(:)
     logical, intent(in)             :: adj_geom
     double precision                :: h0, disp_conv(4)
@@ -58,6 +58,7 @@ subroutine atp_import_mesh(mesh1d, len_adj, adj_geom, u0, h0, ngp, bbar, nnod, n
         do k1=1,nel
             do k2=1,nnod
                 Rpos(k2,k1) = Rpos(k2,k1) - u0(k3)
+                mesh1d%node_pos_undef(k3-2) = Rpos(k2,k1) ! Will be overwritten with the same value, but this is ok.
                 k3 = k3 + 1
             enddo
             k3 = k3 - 1

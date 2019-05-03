@@ -67,6 +67,7 @@ use iso_c_binding
     ! Mesh settings
     type mesh1d_typ
         double precision, allocatable   :: node_pos(:)          ! Radial position of each node
+        double precision, allocatable   :: node_pos_undef(:)    ! Initial nodal position (for continued simulation<0 node_pos may be deformed coords. node_pos_undef is updated on each import in atp)
         double precision                :: h0=1.d0              ! Height of considered gauge section
         integer                         :: ngp=1                ! Number of gauss points in each element
         logical                         :: abaqus_bbar=.false.  ! Use the abaqus b-bar method for linear elements with 2 gauss points

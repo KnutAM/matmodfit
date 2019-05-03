@@ -37,12 +37,12 @@ implicit none
     ! Input parameters
     double precision, intent(out)   :: error            ! Error
     double precision, intent(in)    :: props(:)         ! Material parameters (true, full) input
-    type(fdata_typ), intent(inout)     :: f_data           ! Settings input
+    type(fdata_typ), intent(inout)  :: f_data           ! Settings input
     integer, intent(in)             :: simnr            ! Simulation number (=> f_data%sim(simnr) is pertinent to current simulation)
 
     ! Previous analysis relaxation
     integer                         :: prev_simnr           ! Previous simulation number
-    type(fdata_typ)                    :: f_data_initial_relax ! Data belonging to relaxation simulation
+    type(fdata_typ)                 :: f_data_initial_relax ! Data belonging to relaxation simulation
 
     ! Node position iterations
     double precision, allocatable   :: node_disp_old_mesh(:), node_pos_old_mesh(:)
@@ -120,9 +120,11 @@ implicit none
     allocate(node_disp_old_mesh(nel_old+1), node_pos_old_mesh(nel_old+1))
      ! Find interpolated displacements by interpolating on the deformed configuration as an initial guess
     node_disp_old_mesh = f_data_initial_relax%sim(1)%end_res%u_end(3:(ntnod_old+2):(nenod_old-1))
-    node_pos_old_mesh = f_data_initial_relax%sim(1)%mesh1d%node_pos + node_disp_old_mesh
-    node_pos_update = interpolate(node_pos_old_mesh, node_disp_old_mesh, node_pos_guess)
+    node_pos_old_mesh = f_data_initial_relax%sim(1)%mesh1d%node_pos_undef
+    node_pos_update = interpolate(node_pos_old_mesh + node_disp_old_mesh, node_disp_old_mesh, node_pos_guess)
+    
     if (interpolate_failed) then
+        call write_output('Interpolation failed on initial guess', 'status', 'atp:element_removal')
         error = huge(1.d0)
         return
     endif
@@ -161,6 +163,8 @@ implicit none
         
         call remesh(node_pos_guess, f_data, f_data_initial_relax, simnr, rpos, h0, gp_stress, gp_strain, gp_F, gp_sv, u0)
         if (interpolate_failed) then
+            write(*,*) node_pos_guess
+            write(*,*) node_pos_old_mesh
             error = huge(1.d0)
             return
         endif
@@ -208,9 +212,6 @@ implicit none
             node_pos_guess_old = node_pos_guess
             node_pos_result_old = node_pos_result
             node_pos_guess = node_pos_guess + (f_data%sim(simnr)%mesh1d%node_pos-node_pos_result)
-            if (new_is_solid) then ! Force inner node to be zero
-                node_pos_guess(1) = 0.d0
-            endif
         else
             ! Further iteration, secant update?
             node_pos_update = (f_data%sim(simnr)%mesh1d%node_pos-node_pos_result) &
@@ -219,10 +220,14 @@ implicit none
             node_pos_guess_old = node_pos_guess
             node_pos_result_old = node_pos_result
             node_pos_guess = node_pos_guess + node_pos_update
-            if (new_is_solid) then ! Force inner node to be zero
-                node_pos_guess(1) = 0.d0
-            endif
         endif
+        if (new_is_solid) then ! Force inner node to be zero
+                node_pos_guess(1) = 0.d0
+        endif
+        ! Don't allow guesses with smaller initial inner position for new mesh than on the old mesh (i.e. extrapolation)
+        node_pos_guess(1) = max(node_pos_guess(1), node_pos_old_mesh(1))    
+        ! Don't allow guesses with larger initial outer position for new mesh than on the old mesh (i.e. extrapolation)
+        node_pos_guess(ntnod) = min(node_pos_guess(ntnod), node_pos_old_mesh(ntnod_old))
    
     enddo GEOM_ITER_LOOP
     
@@ -622,7 +627,7 @@ implicit none
     integer             :: k1, num_base_points, num_out_points, first_above
     double precision    :: numtol
     
-    numtol = maxval(abs(x))*1.d-3 ! Tolerance for extrapolation
+    numtol = minval(x(2:size(x))-x(1:(size(x)-1)))*1.d-2 ! Tolerance for extrapolation, max 1 % of smallest interval
     
     num_base_points = size(y)
     num_out_points = size(xv)
