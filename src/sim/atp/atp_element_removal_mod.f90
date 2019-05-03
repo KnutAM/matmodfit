@@ -76,7 +76,13 @@ implicit none
     ! Simulation timing
     double precision                :: starttime, stoptime
     integer                         :: clock_count, clock_rate
-
+    
+    ! Error tracking
+    double precision, allocatable   :: geom_error(:)
+    integer                         :: res_fid
+    
+    allocate(geom_error(f_data%sim(simnr)%atp_er%geom_iter_max))
+    
     ! Simulation timing
     call system_clock ( clock_count, clock_rate)
     starttime = real(clock_count)/real(clock_rate)
@@ -166,15 +172,14 @@ implicit none
         ! Solve zero displacement increment
         call solve_incr(rpos, h0, load, disp, f_data%sim(simnr)%init%temp_init, 0.d0, time, f_data%sim(simnr)%atp_er%time_remesh, free_dofs, &
                free_dofs, gp_F, gp_stress, gp_sv, gp_strain, u0, du, f_data%sim(1)%iter, niter, lconv, pnewdt, &
-               k1, 1, props, f_data%glob%cmname, f_data%glob%umat_address, f_data%glob%nlgeom, iter_err_norm)
+               k1, -simnr, props, f_data%glob%cmname, f_data%glob%umat_address, f_data%glob%nlgeom, iter_err_norm)
     
         if (.not.lconv) then
-           call write_output('No convergence after element removal', 'status', 'sim:atp')
+           call write_output('No convergence for local material problem after element removal, setting error to huge', 'status', 'sim:atp')
            exit GEOM_ITER_LOOP
         endif
    
-        ! Set end values in f_data%sim(simnr)
-        f_data%sim(simnr)%mesh1d%h0 = h0
+        ! Set end values in f_data%sim(simnr)        
         if (new_is_solid) then  ! Set disp(3) = 0
             disp = (/u0(1)/h0, u0(2), u0(3)*0.0, u0(size(u0))/rpos(size(rpos,1), size(rpos,2))/)
         else
@@ -183,7 +188,7 @@ implicit none
         call atp_export_end(f_data, simnr, u0, gp_stress, gp_strain, gp_F, gp_sv, disp, load, h0)
    
         ! Relax 
-        call atp_relax(relx_conv, props, f_data, simnr, simnr, f_data_relax, '_relax'//int2str(simnr)//'_'//int2str(k1), rpos)
+        call atp_relax(relx_conv, props, f_data, simnr, simnr, f_data_relax, '_relax'//int2str(simnr)//'_'//int2str(k1), rpos, h0)
         if (.not.relx_conv) then
             error = huge(1.d0)
             return
@@ -192,11 +197,13 @@ implicit none
         node_pos_result = (/rpos(1,:), rpos(size(rpos,1), size(rpos,2))/) + f_data_relax%sim(1)%end_res%u_end(node_disp_ind)
         pos_error = sqrt(  sum( (node_pos_result-f_data%sim(simnr)%mesh1d%node_pos)**2 &
                                   /max(1.d-6,f_data%sim(simnr)%mesh1d%node_pos)**2 )  )
+        geom_error(k1) = pos_error
+        
         if (pos_error<f_data%sim(simnr)%atp_er%node_pos_tol) then
             geom_conv = .true.
             error = 0.d0
             exit GEOM_ITER_LOOP
-        elseif (k1>0) then
+        elseif (k1==1) then
             ! First iteration - fix point update
             node_pos_guess_old = node_pos_guess
             node_pos_result_old = node_pos_result
@@ -219,8 +226,18 @@ implicit none
    
     enddo GEOM_ITER_LOOP
     
+    if (f_data%glob%resnr>0) then
+        open(newunit=res_fid, file=trim(f_data%glob%outname)//'_sim'//int2str(simnr)//'_'//int2str(f_data%glob%resnr)//'.txt', position='append')
+        write(res_fid, '(A)') 'Nodal positioning relative error evolution:'
+        write(res_fid, '('//int2str(k1)//'ES15.5)') geom_error(1:k1)
+        close(res_fid)
+    endif
+    
     if (.not.geom_conv) then
-        call write_output('No convergence for geometry update due to element removal, error=huge', 'status', 'sim:atp')
+        if (lconv) then
+            call write_output('No convergence for geometry update due to element removal, error=huge', 'status', 'sim:atp')
+        endif
+        
         error = huge(1.d0)
     else
         call set_end_values(f_data_relax%sim(1), f_data%sim(simnr))
@@ -232,7 +249,7 @@ implicit none
 
 end subroutine atp_element_removal
 
-subroutine atp_relax(converged, props, f_data, simnr_new, simnr_old, f_data_relax, append_result_name, rpos)
+subroutine atp_relax(converged, props, f_data, simnr_new, simnr_old, f_data_relax, append_result_name, rpos, h0)
 ! Solve relaxing before element removal by setting up another simulation
 implicit none
     logical, intent(out)            :: converged
@@ -242,6 +259,7 @@ implicit none
     type(fdata_typ), intent(out)    :: f_data_relax
     character(len=*), intent(in)    :: append_result_name
     double precision, optional      :: rpos(:,:)
+    double precision, optional      :: h0
     double precision                :: error
     
     ! Setup the f_data for the relax simulation
@@ -311,8 +329,13 @@ implicit none
     ! Set new node positions if input
     if (present(rpos)) then
         f_data_relax%sim(1)%mesh1d%node_pos = (/rpos(1,:), rpos(size(rpos,1),size(rpos,2))/)
+        if (present(h0)) then
+            f_data_relax%sim(1)%mesh1d%h0 = h0
+        else
+            call write_output('h0 must be given if rpos is given', 'status', 'atp:element_removal:relax')
+        endif       
     elseif (f_data%sim(simnr_old)%init%cont_analysis<0) then
-        ! if rpos is not present, this is the first relax. 
+        ! if rpos (and h0) is not present, this is the first relax. 
         ! If we relax from a continued analysis we must account for that the mesh is given for the deformed configuration
         ! Otherwise, if rpos is given we have the correct (initial) mesh (including correct (initial) h0)
         f_data_relax%sim(1)%init%cont_analysis = -1 
@@ -615,7 +638,7 @@ implicit none
     
     if (xv(num_out_points)>x(num_base_points)+numtol) then
         call write_output('Interpolation failed, x(end) must be >= xv(end)', 'status', 'sim:atp_element_removal')
-        call write_output('x(end)='//dbl2str(x(num_out_points))//', xv(end)='//dbl2str(xv(num_base_points)), 'status', 'sim:atp_element_removal', loc=.false.)
+        call write_output('x(end)='//dbl2str(x(num_base_points))//', xv(end)='//dbl2str(xv(num_out_points)), 'status', 'sim:atp_element_removal', loc=.false.)
         interpolate_failed = .true.
         return
     endif
