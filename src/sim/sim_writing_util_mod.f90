@@ -138,7 +138,7 @@ implicit none
     ! Internal variables
     character*4             :: stp_str, inc_str, nit_str, tim_str, temp_str
     character*6,allocatable :: load_str(:), disp_str(:), statev_str(:)
-    character*6             :: strain_str(6), stress_str(6), dfgrd_str(9)
+    character*6             :: strain_str(6), stress_str(6), dfgrd_str(9), PK1_str(9)
     character*40            :: add_str
     integer                 :: k1, col, outp_len, iel, igp
     character(len=100)      :: tmp_str
@@ -159,6 +159,7 @@ implicit none
     
     ! Gauss point output headers
     dfgrd_str = ['F11', 'F22', 'F33', 'F12', 'F23', 'F31', 'F13', 'F21', 'F31']
+    PK1_str   = ['P11', 'P22', 'P33', 'P12', 'P23', 'P31', 'P13', 'P21', 'P31']
     stress_str = ['sig11', 'sig22', 'sig33', 'sig12', 'sig13', 'sig23']
     if (nlgeom) then
         strain_str = ['E11', 'E22', 'E33', 'E12', 'E23', 'E31']
@@ -177,9 +178,14 @@ implicit none
         disp_str = (/"eps_z ", "phi   ", "eps_ci", "eps_co"/)
         load_str = (/"F_z   ", "Torque", "p_i   ", "p_o   "/)
     elseif (stype==2) then          ! MPS
-        if (nlgeom)      allocate(disp_str, source=dfgrd_str)
-        if (.not.nlgeom) allocate(disp_str, source=strain_str)
-        allocate(load_str, source=stress_str)
+        if (nlgeom) then
+            allocate(disp_str, source=dfgrd_str)
+            allocate(load_str, source=PK1_str)
+        else
+            allocate(disp_str, source=strain_str)
+            allocate(load_str, source=stress_str)
+        endif
+        
     endif
     
         
