@@ -216,7 +216,8 @@ implicit none
             ! Further iteration, secant update?
             node_pos_update = (f_data%sim(simnr)%mesh1d%node_pos-node_pos_result) &
                                 *(node_pos_guess-node_pos_guess_old) &
-                                /(node_pos_result-node_pos_result_old)
+                                /sign(max(abs(node_pos_result-node_pos_result_old),f_data%sim(simnr)%mesh1d%node_pos(nel+1)*1.d-20), node_pos_result-node_pos_result_old)
+            
             node_pos_guess_old = node_pos_guess
             node_pos_result_old = node_pos_result
             node_pos_guess = node_pos_guess + node_pos_update
@@ -224,11 +225,7 @@ implicit none
         if (new_is_solid) then ! Force inner node to be zero
                 node_pos_guess(1) = 0.d0
         endif
-        ! Don't allow guesses with smaller initial inner position for new mesh than on the old mesh (i.e. extrapolation)
-        node_pos_guess(1) = max(node_pos_guess(1), node_pos_old_mesh(1))    
-        ! Don't allow guesses with larger initial outer position for new mesh than on the old mesh (i.e. extrapolation)
-        node_pos_guess(ntnod) = min(node_pos_guess(ntnod), node_pos_old_mesh(ntnod_old))
-   
+        
     enddo GEOM_ITER_LOOP
     
     if (f_data%glob%resnr>0) then
@@ -650,7 +647,7 @@ implicit none
     
     first_above = 2
     do k1 = 1,num_out_points
-        do while ((x(first_above)<xv(k1)).and.(first_above<=num_base_points))
+        do while ((x(first_above)<xv(k1)).and.(first_above<num_base_points))
             first_above = first_above + 1
         enddo
         yv(k1) = y(first_above-1) + (y(first_above)-y(first_above-1))*(xv(k1)-x(first_above-1))/(x(first_above)-x(first_above-1))
