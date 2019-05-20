@@ -140,6 +140,10 @@ implicit none
     endif
     nstatv = glob%nstatv
     
+    if (glob%opt_resnr<0) then
+        call bad_input('opt_resnr cannot be negative')
+    endif    
+    
     ! 3) Assign default values to optional allocatable variables. (Other 
     !    optional variables are set to default values in the type definition)
     

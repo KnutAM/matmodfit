@@ -91,6 +91,8 @@ subroutine read_global_settings(glob)
                                     glob%xvar_to_mpar_addr, &
                                     glob%ipar_to_xvar_addr, &
                                     glob%xvar_to_ipar_addr)
+        elseif (adjustl(textline)=='*opt_resnr') then
+            call read_int(glob%opt_resnr)
         else
             call write_output('Unknown category "'//trim(textline)//'".', 'warning', 'inp')
         endif

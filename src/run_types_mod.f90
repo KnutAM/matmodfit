@@ -65,7 +65,7 @@ use optimization_mod
     
     ! Optimization
     resnr_tmp = f_data%glob%resnr
-    f_data%glob%resnr = 0
+    f_data%glob%resnr = f_data%glob%opt_resnr
     call optimize(errors, xvars, f_data, opt)
     f_data%glob%resnr = resnr_tmp
     

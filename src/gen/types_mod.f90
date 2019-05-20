@@ -51,6 +51,8 @@ use iso_c_binding
         ! Other global settings
         double precision                :: num_grad_pert=1.e-8  ! Pertubation for calculating numerical gradient of objective function
 	    logical				            :: error_history=.false.! If error history (per simulation call) should be saved to file <inputfile>.err
+        integer                         :: opt_resnr=0          ! Set to number > 0 if results should be written during optimization. 
+                                                                ! Typically used to make very custom error evalutions via external script
         
         ! Non-settable options
         character(len=strl)             :: outname              ! Base name for output files, determined from the input file name!
