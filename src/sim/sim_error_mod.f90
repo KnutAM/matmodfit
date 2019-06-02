@@ -82,15 +82,26 @@ subroutine calculate_error(err, ctrl, err_tim_hist, err_exp_hist, err_sim_hist, 
 implicit none
     type(err_typ)                           :: err                      ! Custom type containing error settings
     double precision, intent(in)            :: ctrl(:,:)                ! Control as step variable type (i.e. first row represents which step it the remaining starts being valid from)
-    double precision, intent(inout)         :: err_tim_hist(:,:), err_exp_hist(:,:), err_sim_hist(:,:)
+    double precision, allocatable, intent(inout)         :: err_tim_hist(:,:), err_exp_hist(:,:), err_sim_hist(:,:)
     integer                                 :: err_hist_comp(:)         ! Describes where in err_[sim/exp]_hist the disp values are put (load values are put at pos-1)
     integer                                 :: e_cnt                    ! Counter for how many errors have been calculated
     double precision, intent(out)           :: error                    ! Calculated error
     double precision, allocatable, optional :: evec(:)                  ! Error vector
+    double precision, allocatable           :: err_tim_hist_tmp(:,:), err_exp_hist_tmp(:,:), err_sim_hist_tmp(:,:)
     
     ! Update size of error_hist
     if (err%hist_rows == -1) then            ! Unknown (first time simulation is run)
-        err%hist_rows = e_cnt
+        err%hist_rows = e_cnt               ! Need to remove additional zeros for correct scaling
+        allocate(err_tim_hist_tmp(e_cnt,size(err_tim_hist,2)))
+        allocate(err_exp_hist_tmp(e_cnt,size(err_exp_hist,2)))
+        allocate(err_sim_hist_tmp(e_cnt,size(err_sim_hist,2)))
+        err_tim_hist_tmp = err_tim_hist(1:e_cnt, :)
+        err_exp_hist_tmp = err_exp_hist(1:e_cnt, :)
+        err_sim_hist_tmp = err_sim_hist(1:e_cnt, :)
+        deallocate(err_tim_hist, err_exp_hist, err_sim_hist)
+        allocate(err_tim_hist, source=err_tim_hist_tmp)
+        allocate(err_exp_hist, source=err_exp_hist_tmp)
+        allocate(err_sim_hist, source=err_sim_hist_tmp)
     elseif (err%hist_rows.ne.e_cnt) then
         call write_output('Error count doesn''t match from previous simulation (please save input files and report to developers)', 'warning', 'sim:err')
         call write_output('Error calculation may be incorrect', 'warning', 'sim:err', loc=.false.)
@@ -147,6 +158,7 @@ implicit none
     double precision, allocatable           :: scaling(:), stp_err_scale(:), stp_err_scale_ctrl(:)
     integer, allocatable                    :: stp_ctrl(:)
     
+        
     num_channels = size(ctrl,1)-1    ! Number of channels
     allocate(stp_ctrl(num_channels), stp_err_scale(num_channels), stp_err_scale_ctrl(num_channels))
     
@@ -179,8 +191,7 @@ implicit none
         call get_step_data_int(stp_ctrl, ctrl, step)
         call get_step_data_dbl(stp_err_scale, err%err_scale, step)
         call get_step_data_dbl(stp_err_scale_ctrl, err%err_scale_ctrl, step)
-        
-        
+                
         do ch_ind=1,num_channels
             if (err_hist_comp(ch_ind)>0) then
                 do k2=0,1   ! Load first, then disp. (2*k2-1) = [-1, 1]
@@ -209,7 +220,6 @@ implicit none
         thisind = nextind
     enddo
     
-    
     ! Calculate actual error
     error = sum(err_sim_hist**2)/e_cnt
         
@@ -220,8 +230,7 @@ implicit none
         do k1=1,size(err_sim_hist,2)
             evec(((k1-1)*e_cnt+1):(k1*e_cnt)) = err_sim_hist(1:e_cnt, k1)
         enddo
-    endif
-    
+    endif   
 
 end subroutine
     
