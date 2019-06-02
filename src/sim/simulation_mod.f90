@@ -82,6 +82,10 @@ subroutine simulate(error, xvar, f_data, evec)
         elseif (stype == 11) then
             ! ATP machine ("element removal") (no error output for this stage)
             call atp_element_removal(error_tmp, mpar, f_data, k1)
+            if (present(evec)) then 
+                allocate(ev_tmp(k1)%evec_tmp(1))
+                ev_tmp(k1)%evec_tmp = 0.d0
+            endif
         else
             call write_output('Simulation '//int2str(k1)//': stype = '//int2str(stype)//' is not supported', 'error', 'sim')
         endif
@@ -202,7 +206,7 @@ subroutine optanalyzer(xopt, f_data, error, dfdx, evec, corr)
     
     ! Ensure that results are not written for each pertubation
     tmp_resnr = f_data%glob%resnr ! Save old setting
-    f_data%glob%resnr = 0
+    f_data%glob%resnr = f_data%glob%opt_resnr
     
     ! Get numerical derivatives at optimum, asking for result output at the base simulation
 	call simulate_gradient(error, dfdx, xopt, f_data, evec, evec_gradient, tmp_resnr)
