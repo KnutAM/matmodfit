@@ -38,7 +38,7 @@ end subroutine
 
 
 subroutine mps_solve_incr(load_old, disp_old, temp_old, stat_old, load, disp, temp, stat, time, dt, free_dofs, iter, niter, lconv, pnewdt, &
-    kinc, kstep, props, cmname, umat, nlgeom)
+    kinc, kstep, props, cmname, umat, nlgeom, simnr)
     use types_mod
     use umat_mod
     implicit none
@@ -57,6 +57,7 @@ subroutine mps_solve_incr(load_old, disp_old, temp_old, stat_old, load, disp, te
         character(len=80), intent(in)   :: cmname       ! Material name sent to umat
         procedure(umat_template),pointer:: umat         ! Addresss to umat subroutine
         logical, intent(in)             :: nlgeom       ! Bool to determine if nonlinear geometry effects should be accounted for
+        integer, intent(in)             :: simnr        ! Simulation number (for better output information)
         
         !Internal variables
         double precision :: K(size(disp), size(disp)), R(size(disp)), load_res(size(load))
@@ -131,6 +132,7 @@ subroutine mps_solve_incr(load_old, disp_old, temp_old, stat_old, load, disp, te
             
             lconv = pnewdt>=1.d0
             if (.not.lconv) then
+                call write_output('material routine (sim='//int2str(simnr)//', stp='//int2str(kstep)//', incr='//int2str(kinc)//') requested a smaller timestep: pnewdt='//dbl2str(pnewdt,'F0.4'), 'status', 'sim:mps')
                 exit
             endif
 

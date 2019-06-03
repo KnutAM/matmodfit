@@ -18,6 +18,9 @@ public      :: FBeps_calc       ! Calculate deformation gradient and strain at g
 !Parameters
 double precision, parameter :: pi = acos(-1.d0)  !Define pi
 
+! General simulation properties (for output)
+integer         :: simnr
+
 ! General element properties
 integer         :: ngp      !Number of gauss points
 integer         :: nnod     !Number of nodes
@@ -27,16 +30,18 @@ logical         :: bbar     !Abaqus b-bar method (Selectively reduced integratio
     contains
 
 ! Setup of elements (needs to run before using the other subroutines in the module)
-subroutine element_setup(set_ngp, set_nnod, set_bbar)
+subroutine element_setup(set_ngp, set_nnod, set_bbar, set_simnr)
 implicit none
     integer :: set_ngp
     integer :: set_nnod
     logical :: set_bbar
+    integer :: set_simnr
     
     ngp = set_ngp
     nnod = set_nnod
     ndof = nnod + 2
     bbar = set_bbar
+    simnr = set_simnr
         
 end subroutine element_setup
 
@@ -126,7 +131,7 @@ implicit none
         gpstatev(:,k1)  = statev
         
         if (pnewdt<1.d0) then
-            call write_output('material routine (stp='//int2str(kstep)//', incr='//int2str(kinc)//', e='//int2str(noel)//', gp='//int2str(k1)//') requested a smaller timestep: pnewdt='//dbl2str(pnewdt,'F0.4'), 'status', 'sim:atp')
+            call write_output('material routine (sim='//int2str(simnr)//', stp='//int2str(kstep)//', incr='//int2str(kinc)//', e='//int2str(noel)//', gp='//int2str(k1)//') requested a smaller timestep: pnewdt='//dbl2str(pnewdt,'F0.4'), 'status', 'sim:atp')
             exit
         endif
         
@@ -222,7 +227,7 @@ implicit none
         gpstatev(:,k1)  = statev
         
         if (pnewdt<1.d0) then
-            call write_output('material routine (stp='//int2str(kstep)//', incr='//int2str(kinc)//', e='//int2str(noel)//', gp='//int2str(k1)//') requested a smaller timestep: pnewdt='//dbl2str(pnewdt,'F0.4'), 'status', 'sim:atp')
+            call write_output('material routine (sim='//int2str(simnr)//', stp='//int2str(kstep)//', incr='//int2str(kinc)//', e='//int2str(noel)//', gp='//int2str(k1)//') requested a smaller timestep: pnewdt='//dbl2str(pnewdt,'F0.4'), 'status', 'sim:atp')
             exit
         endif
         

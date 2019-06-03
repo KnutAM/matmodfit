@@ -128,7 +128,7 @@ call atp_import_init(f_data, simnr, exp_info, nstatv, gp_s0, gp_strain0, gp_F0, 
 
 ! == Mesh and geometry == 
 call atp_import_mesh(f_data%sim(simnr)%mesh1d, len_adj, adj_geom, u0, h0, ngp, bbar, nnod, nel, ndof_tot, rpos, disp_conv, iter_err_norm)
-call element_setup(ngp, nnod, bbar)
+call element_setup(ngp, nnod, bbar, simnr)
 
 !Allocate gp_, dispvars, additional_output
 allocate(u(ndof_tot), du(ndof_tot), v(ndof_tot), v_old(ndof_tot))

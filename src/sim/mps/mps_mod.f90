@@ -234,7 +234,7 @@ STEP_LOOP: do kstep = 1,nstep
             
             ! Solve the increment
             call mps_solve_incr(load_old, disp_old, temp_old, stat_old, load, disp, temp, stat, time, dt, free_dofs, &
-                                iter, niter, lconv, pnewdt, kinc, kstep, props, cmname, umat_address, nlgeom)
+                                iter, niter, lconv, pnewdt, kinc, kstep, props, cmname, umat_address, nlgeom, simnr)
             
             ! Check results and if OK go to next step
             if (lconv) then

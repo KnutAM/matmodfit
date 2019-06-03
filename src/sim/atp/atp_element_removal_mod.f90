@@ -174,6 +174,7 @@ implicit none
         endif
         
         ! Solve zero displacement increment
+        call element_setup(ngp, nenod, .false., -simnr)
         call solve_incr(rpos, h0, load, disp, f_data%sim(simnr)%init%temp_init, 0.d0, time, f_data%sim(simnr)%atp_er%time_remesh, free_dofs, &
                free_dofs, gp_F, gp_stress, gp_sv, gp_strain, u0, du, f_data%sim(1)%iter, niter, lconv, pnewdt, &
                k1, -simnr, props, f_data%glob%cmname, f_data%glob%umat_address, f_data%glob%nlgeom, iter_err_norm)
@@ -370,7 +371,7 @@ implicit none
     double precision                :: rpos_el(nnod)
     double precision                :: gp_weight    ! Unused variable, just needed for passing to get_gpinfo
     
-    call element_setup(ngp, nnod, .false.)
+    call element_setup(ngp, nnod, .false., 0)
     allocate(gp_pos0(ngp*nel))
     ind = 1
     do iel = 1,nel
@@ -522,7 +523,7 @@ implicit none
     allocate(dof(nenod), ue_r(nenod), dNpdR(nenod), Np(nenod), Bs_mat(6,nenod+2))
     ind = 1
     ind_old = 2
-    call element_setup(ngp, nenod, .false.)  ! New element 
+    call element_setup(ngp, nenod, .false., simnr)  ! New element 
     do iel = 1,nel
         do inod=1,nenod
             dof(inod) = (inod+2) + (nenod-1)*(iel-1)
