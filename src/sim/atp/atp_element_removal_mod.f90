@@ -65,7 +65,7 @@ implicit none
     type(fdata_typ)                 :: f_data_relax
     double precision, allocatable   :: rpos(:,:)
     double precision                :: h0, load(4), disp(4), time(2)
-    integer                         :: free_dofs(1)
+    integer, allocatable            :: free_dofs(:), known_dofs(:)
     double precision, allocatable   :: gp_F(:,:,:), gp_stress(:,:,:), gp_sv(:,:,:), gp_strain(:,:,:), u0(:), du(:)
     double precision                :: iter_tol
     integer                         :: niter, iter_max
@@ -138,8 +138,7 @@ implicit none
     ! Gauss point values:
     allocate(gp_stress(6,ngp,nel), gp_sv(f_data%glob%nstatv,ngp,nel), gp_strain(6,ngp,nel), gp_F(9,ngp,nel))
     allocate(u0(ndof), du(ndof), iter_err_norm(ndof))   !Nodal values (and normalization for error (not used))
-
-    free_dofs   = -1    ! All displacements prescribed:
+    
     du          = 0.d0  ! -> prescribed to zero
     load        = 0.d0  ! 
     disp        = 0.d0  ! 
@@ -175,12 +174,27 @@ implicit none
         
         ! Solve zero displacement increment
         call element_setup(ngp, nenod, .false., -simnr)
+        allocate(free_dofs(1))
+        free_dofs   = -1    ! All displacements prescribed:
         call solve_incr(rpos, h0, load, disp, f_data%sim(simnr)%init%temp_init, 0.d0, time, f_data%sim(simnr)%atp_er%time_remesh, free_dofs, &
                free_dofs, gp_F, gp_stress, gp_sv, gp_strain, u0, du, f_data%sim(1)%iter, niter, lconv, pnewdt, &
                k1, -simnr, props, f_data%glob%cmname, f_data%glob%umat_address, f_data%glob%nlgeom, iter_err_norm)
     
         if (.not.lconv) then
-           call write_output('No convergence for local material problem after element removal, setting error to huge', 'status', 'sim:atp')
+           call write_output('No convergence for local material problem after element removal', 'status', 'sim:atp')
+           exit GEOM_ITER_LOOP
+        endif
+        
+        ! Solve zero external displacement increment
+        deallocate(free_dofs)
+        call gen_free_dofs(free_dofs, known_dofs, ndof, [1,1,1,1], .false.)
+        call solve_incr(rpos, h0, load, disp, f_data%sim(simnr)%init%temp_init, 0.d0, time, f_data%sim(simnr)%atp_er%time_remesh, free_dofs, &
+               known_dofs, gp_F, gp_stress, gp_sv, gp_strain, u0, du, f_data%sim(1)%iter, niter, lconv, pnewdt, &
+               k1, -simnr, props, f_data%glob%cmname, f_data%glob%umat_address, f_data%glob%nlgeom, iter_err_norm)
+        
+        deallocate(free_dofs, known_dofs)
+        if (.not.lconv) then
+           call write_output('No convergence for for internal relaxation after element removal', 'status', 'sim:atp')
            exit GEOM_ITER_LOOP
         endif
    
