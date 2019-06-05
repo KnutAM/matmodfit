@@ -93,10 +93,9 @@ implicit none
     double precision, allocatable   :: ipar(:)
     
     
-    nset = opt%start%num_sets   ! May be updated during call to distribute_xvar
-    
-    call distribute_xvar(xvar_out, get_lower_bounds(f_data%glob), get_upper_bounds(f_data%glob), &
-                         nset, opt%start%algorithm)
+    call distribute_xvar(xvar_out, get_lower_bounds(f_data%glob), get_upper_bounds(f_data%glob), opt%start)
+        
+    nset = opt%start%num_sets   ! May have been updated during call to distribute_xvar
     
     allocate(error_out(nset))
     allocate(ipar(size(f_data%glob%ipar_init)))
@@ -114,27 +113,29 @@ implicit none
     
 end subroutine pspace_optimization
 
-subroutine distribute_xvar(xvar, lb, ub, nset, algorithm)
+subroutine distribute_xvar(xvar, lb, ub, opt_start)
 implicit none
     double precision, allocatable   :: xvar(:,:)    ! Variables to be distributed
     double precision                :: lb(:), ub(:) ! Lower and upper bounds for variables
+    type(start_typ)                 :: opt_start    ! Optimization start settings
     integer                         :: nset         ! Number of variable sets
     integer                         :: algorithm    ! Distribution algorithm
     
-    if (algorithm==1) then
-        call full_factorial(xvar, lb, ub, nset)
-    elseif (algorithm==2) then
-        call lhs_basic(xvar, lb, ub, nset)
+    if (opt_start%algorithm==1) then
+        call full_factorial(xvar, lb, ub, opt_start)
+    elseif (opt_start%algorithm==2) then
+        call lhs_basic(xvar, lb, ub, opt_start)
     else
-        call write_output('algorithm '//int2str(algorithm)//' is not supported for pspace optimization', 'error', 'opt')
+        call write_output('algorithm '//int2str(opt_start%algorithm)//' is not supported for pspace optimization', 'error', 'opt')
     endif
     
 end subroutine
 
-subroutine full_factorial(xvar, lb, ub, nset)
+subroutine full_factorial(xvar, lb, ub, opt_start)
 implicit none
     double precision, allocatable   :: xvar(:,:)    ! Variables to be distributed
     double precision                :: lb(:), ub(:) ! Lower and upper bounds for variables
+    type(start_typ)                 :: opt_start    ! Optimization start settings
     integer                         :: nset         ! Number of variable sets
     integer                         :: nvar         ! Number of variables in each set
     integer                         :: nlev         ! Number of variable levels
@@ -142,8 +143,9 @@ implicit none
     integer, allocatable            :: xpos(:,:)    ! Choice of level for each material parameter
     
     nvar = size(lb)
-    nlev = int(real(nset)**(1.d0/real(nvar)))       ! Calculate the number of levels of each parameter, rounded down
-    nset = nlev**nvar                               ! Given the rounded number of levels, get the appropriate number of sets
+    nlev = int(real(opt_start%num_sets)**(1.d0/real(nvar))) ! Calculate the number of levels of each parameter, rounded down
+    nset = nlev**nvar                                       ! Given the rounded number of levels, get the appropriate number of sets
+    opt_start%num_sets = nset                               ! Save back the corrected number of sets
     
     allocate(xvar(nvar,nset), xpos(nvar,nset))
     
@@ -162,21 +164,33 @@ implicit none
     
 end subroutine
 
-subroutine lhs_basic(xvar, lb, ub, nset)
+subroutine lhs_basic(xvar, lb, ub, opt_start)
 implicit none
     double precision, allocatable   :: xvar(:,:)    ! Variables to be distributed
     double precision                :: lb(:), ub(:) ! Lower and upper bounds for variables
+    type(start_typ)                 :: opt_start    ! Optimization start settings
     integer                         :: nset         ! Number of variable sets
     integer                         :: k1           ! Iterator
     double precision, allocatable   :: tmp_rand(:)  ! Temporary container for a set of random numbers      
     integer, allocatable            :: sortind(:)   ! Indicies for sorted column of xvar
     integer, allocatable            :: assign_vec(:)! Vector to be assigned (containing the end position of the intervals)
     
+    integer, allocatable            :: fixed_seed(:)
+    integer                         :: seed_size
+    
+    nset = opt_start%num_sets
     
     allocate(xvar(size(lb),nset), tmp_rand(nset), assign_vec(nset), sortind(nset))
     
     ! Prevent the same numbers to be initiated every time
-    call random_seed()
+    if (opt_start%use_fixed_seed) then
+        call random_seed(size=seed_size)    ! Get how many elements the fixed_seed should contain
+        allocate(fixed_seed(seed_size))     !
+        fixed_seed = opt_start%fixed_seed   ! Set fixed seed to be equal to user specified seed
+        call random_seed(put=fixed_seed)    ! Initate random generator using the user specified seed
+    else
+        call random_seed()                  ! Initiate the random generator with a random seed from the OS
+    endif
     
     call random_number(xvar)
     

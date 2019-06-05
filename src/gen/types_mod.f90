@@ -224,9 +224,11 @@ use iso_c_binding
     ! == Optimization settings ==
     
     type start_typ
-        integer                         :: algorithm        ! Number of the algorithm to use
-        double precision, allocatable   :: initial_step(:)  ! Initial step for algorithm
-        integer                         :: num_sets=1       ! Maximum number of parameter sets (can be less if fewer are given as input)
+        integer                         :: algorithm                ! Number of the algorithm to use
+        double precision, allocatable   :: initial_step(:)          ! Initial step for algorithm
+        integer                         :: num_sets=1               ! Maximum number of parameter sets (can be less if fewer are given as input)
+        integer                         :: fixed_seed=0             ! Fixed seed, only used if user specifies it and thus set use_fixed_seed=.true. implictly
+        logical                         :: use_fixed_seed=.false.   ! Is set true if option *fixed_seed is specified
     end type start_typ
     
     type end_cond_typ

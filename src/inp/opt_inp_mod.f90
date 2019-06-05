@@ -116,6 +116,9 @@ integer             :: otype
             call read_dbl_vector_allocate(start%initial_step)
         elseif  (adjustl(textline)=='*num_sets') then
             call read_int(start%num_sets)
+        elseif  (adjustl(textline)=='*fixed_seed') then
+            start%use_fixed_seed = .true.
+            call read_int(start%fixed_seed)
         else
             call write_output('Unknown category "'//trim(textline)//'".', 'warning', 'inp')
         endif
