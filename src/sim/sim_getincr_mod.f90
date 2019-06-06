@@ -32,10 +32,6 @@ subroutine get_step_data_dbl(stp_var, glob_var, stpnr)
         endif
     enddo
     
-    if (stpnr<(glob_var(1,1)-1.d-10)) then
-        call write_output('First entry of step data types must be equal to first step of experiment (or 1 if no step column)', 'error', 'inp')
-    endif
-    
 end subroutine
 
 subroutine get_step_data_int(stp_var, glob_var, stpnr)
@@ -51,10 +47,6 @@ subroutine get_step_data_int(stp_var, glob_var, stpnr)
             exit
         endif
     enddo
-    
-    if (stpnr<(glob_var(1,1)-1.d-10)) then
-        call write_output('First entry of step data types must be equal to first step of experiment (or 1 if no step column)', 'error', 'inp')
-    endif
     
 end subroutine
 
