@@ -27,10 +27,11 @@ subroutine get_step_data_dbl(stp_var, glob_var, stpnr)
 
     do k1 = size(glob_var, 2),1,-1
         if (stpnr>(glob_var(1,k1)-1.d-10)) then
-            stp_var = glob_var(2:size(glob_var, 1),k1)
             exit
         endif
     enddo
+    
+    stp_var = glob_var(2:size(glob_var, 1),k1)
     
 end subroutine
 
@@ -43,10 +44,11 @@ subroutine get_step_data_int(stp_var, glob_var, stpnr)
 
     do k1 = size(glob_var, 2),1,-1
         if (stpnr>(glob_var(1,k1)-1.d-10)) then
-            stp_var = nint(glob_var(2:size(glob_var, 1),k1))
             exit
         endif
     enddo
+    
+    stp_var = nint(glob_var(2:size(glob_var, 1),k1))
     
 end subroutine
 

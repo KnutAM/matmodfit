@@ -447,7 +447,7 @@ type(err_typ)   :: err
         endif
     else
         allocate(err%err_scale((nchannels+1),1))
-        err%err_scale(1,1) = 1.d0
+        err%err_scale(1,1) = 0.d0
         err%err_scale(2:,1) = DEF_err_scale
     endif
     
@@ -457,7 +457,7 @@ type(err_typ)   :: err
         endif
     else
         allocate(err%err_scale_ctrl((nchannels+1),1))
-        err%err_scale_ctrl(1,1) = 1.d0
+        err%err_scale_ctrl(1,1) = 0.d0
         err%err_scale_ctrl(2:,1) = 0.d0
     endif
     
