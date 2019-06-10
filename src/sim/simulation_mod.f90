@@ -259,7 +259,7 @@ implicit none
     ! 4) efile (eext_simnr.txt) gives the file to which the scalar error should be written
     ! 5) evecfile (evec_simnr.txt) gives the file to which the error vector should be written (if requested)
     command = trim(f_data%sim(simnr)%ext_cmd%script) // ' ' // eout_str // ' ' // int2str(f_data%glob%resnr) // ' ' &
-                                             // trim(mpar_file) // ' ' // trim(efile) // ' ' // trim(evecfile) // ' ' // '&>> extsim.log'
+                                             // trim(mpar_file) // ' ' // trim(efile) // ' ' // trim(evecfile) // ' ' // '>> extsim.log 2>&1 '
     
     ! Write material parameters to default file 'mpar.txt'
     open(newunit=mpar_fid, file=trim(mpar_file), status='replace', action='write', IOSTAT=status)
