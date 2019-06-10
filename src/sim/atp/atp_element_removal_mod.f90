@@ -479,6 +479,7 @@ implicit none
     
     integer                         :: res_fid              ! Result file fid
     character(len=30)               :: format_spec          ! Writing format
+    double precision, allocatable   :: statev_print(:,:)    ! Used to write state variables to avoid stack overflow
     
     ! Get sizes of old and new mesh
     nel_old     = size(f_data_old%sim(1)%mesh1d%node_pos) - 1
@@ -624,7 +625,15 @@ implicit none
         write(res_fid, *) ''    ! Line break
         write(res_fid, format_spec) transpose(reshape(gp_F, (/9, ngp*nel/)))
         write(res_fid, *) ''    ! Line break
-        write(res_fid, format_spec) transpose(reshape(gp_sv, (/f_data%glob%nstatv, ngp*nel/)))
+        allocate(statev_print(ngp*nel, f_data%glob%nstatv))
+        ind = 1
+        do iel=1,nel
+            do igp=1,ngp
+                statev_print(ind, :) = gp_sv(:,igp,iel)
+                ind = ind + 1
+            enddo
+        enddo
+        write(res_fid, format_spec) statev_print
         write(res_fid, *) ''    ! Line break
         
         close(res_fid)
