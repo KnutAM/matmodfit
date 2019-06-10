@@ -118,7 +118,9 @@ implicit none
     nel_old = (size(f_data_initial_relax%sim(1)%mesh1d%node_pos) - 1)
     ntnod_old = nel_old*(nenod_old-1)+1
     allocate(node_disp_old_mesh(nel_old+1), node_pos_old_mesh(nel_old+1))
+    
      ! Find interpolated displacements by interpolating on the deformed configuration as an initial guess
+    interpolate_failed = .false.    ! Need to reset to avoid remembering old value if it occurred previously
     node_disp_old_mesh = f_data_initial_relax%sim(1)%end_res%u_end(3:(ntnod_old+2):(nenod_old-1))
     node_pos_old_mesh = f_data_initial_relax%sim(1)%mesh1d%node_pos_undef
     node_pos_update = interpolate(node_pos_old_mesh + node_disp_old_mesh, node_disp_old_mesh, node_pos_guess)
