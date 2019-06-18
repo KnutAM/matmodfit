@@ -261,7 +261,6 @@ implicit none
     else
         call set_end_values(f_data_relax%sim(1), f_data%sim(simnr))
     endif
-    
 
     call system_clock ( clock_count, clock_rate)
     stoptime = real(clock_count)/real(clock_rate)
@@ -650,7 +649,7 @@ implicit none
     integer             :: k1, num_base_points, num_out_points, first_above
     double precision    :: numtol
     
-    numtol = minval(x(2:size(x))-x(1:(size(x)-1)))*1.d-1 ! Tolerance for extrapolation, max 10 % of smallest interval
+    numtol = minval(x(2:size(x))-x(1:(size(x)-1)))*5.d-1 ! Tolerance for extrapolation, max 50 % of smallest interval
     
     num_base_points = size(y)
     num_out_points = size(xv)
