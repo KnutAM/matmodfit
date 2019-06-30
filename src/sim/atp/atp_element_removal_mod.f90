@@ -3,12 +3,46 @@ module atp_element_removal_mod
 use atp_mod
 use types_mod
 use atp_element_mod
+use sim_tensor_mod
 use output_mod
+use umat_mod
+use usr_interface_mod
+use iso_c_binding
 implicit none
     private
     public  :: atp_element_removal ! Axial-torsion-pressure element removal routine
     
     logical :: interpolate_failed = .false.
+    
+    type gp_typ
+        double precision                :: pos                  ! Radial (undeformed) position of gauss point
+        double precision                :: strain(6)            ! Small (engineering) strain tensor
+        double precision                :: stress(6)            ! Cauchy stress tensor
+        double precision                :: F(9)                 ! Deformation gradient
+        double precision, allocatable   :: statev(:)            ! State variables
+        logical                         :: converged = .false.  ! Bool showing state of gauss point
+    end type
+    
+    type element_typ
+        double precision, allocatable   :: pos(:)   ! Radial (undeformed) nodal positions
+        double precision, allocatable   :: ue_r(:)  ! Radial nodal displacements
+        integer                         :: number   ! Element number
+    end type
+    
+    type material_typ
+        procedure(umat_template),pointer,nopass :: umat_address ! Pointer address to material routine
+        character(len=80)                       :: cmname       ! Material name
+        double precision, allocatable           :: props(:)     ! Material parameters
+    end type
+    
+    type load_typ
+        double precision    :: dtime        ! Time step for local solution to state variables after interpolation
+        double precision    :: temperature  ! Temperature during local solution to state variables after interpolation
+        double precision    :: uz           ! Axial displacement for cross section
+        double precision    :: phi          ! Rotation for cross section
+        double precision    :: h0           ! Height of cross section
+    end type
+    
     
     contains
 ! Element removal procedure
@@ -72,6 +106,10 @@ implicit none
     logical                         :: lconv
     double precision                :: pnewdt
     double precision, allocatable   :: iter_err_norm(:)
+    
+    ! Materials for interpolation and local convergence
+    type(material_typ)              :: material
+    type(load_typ)                  :: load_info
 
     ! Simulation timing
     double precision                :: starttime, stoptime
@@ -152,6 +190,14 @@ implicit none
     iter_max    = 0     ! No effect since solve_incr converges directly if material converges locally (should be >=1)
     pnewdt      = 1.d0  ! This indicator has no effect here, but should be 1.d0 according to abaqus umat standards
     iter_err_norm = 1.d0! Error normalization, but not used here because all displacement prescribed
+    
+    ! Setup material and load information for local equilibrium after interpolation
+    material%umat_address => f_data%glob%umat_address
+    material%cmname = f_data%glob%cmname
+    allocate(material%props, source=props)
+    load_info%dtime = f_data%sim(simnr)%atp_er%time_remesh
+    load_info%temperature = f_data%sim(simnr)%init%temp_init
+    
 
     new_is_solid = (f_data%sim(simnr)%mesh1d%node_pos(1)<1e-12)
     if (new_is_solid) then ! Force inner node to be zero
@@ -161,11 +207,9 @@ implicit none
     geom_conv = .false.
     
     GEOM_ITER_LOOP: do k1=1,f_data%sim(simnr)%atp_er%geom_iter_max
-        
-        call remesh(node_pos_guess, f_data, f_data_initial_relax, simnr, rpos, h0, gp_stress, gp_strain, gp_F, gp_sv, u0)
+        !call remesh_old(node_pos_guess, f_data, f_data_initial_relax, simnr, rpos, h0, gp_stress, gp_strain, gp_F, gp_sv, u0)
+        call remesh(node_pos_guess, f_data, f_data_initial_relax, simnr, rpos, h0, gp_stress, gp_strain, gp_F, gp_sv, u0, material, load_info)
         if (interpolate_failed) then
-            write(*,*) node_pos_guess
-            write(*,*) node_pos_old_mesh
             error = huge(1.d0)
             return
         endif
@@ -174,21 +218,8 @@ implicit none
             u0(3) = 0.d0
         endif
         
-        ! Solve zero displacement increment
-        call element_setup(ngp, nenod, .false., -simnr)
-        allocate(free_dofs(1))
-        free_dofs   = -1    ! All displacements prescribed:
-        call solve_incr(rpos, h0, load, disp, f_data%sim(simnr)%init%temp_init, 0.d0, time, f_data%sim(simnr)%atp_er%time_remesh, free_dofs, &
-               free_dofs, gp_F, gp_stress, gp_sv, gp_strain, u0, du, f_data%sim(1)%iter, niter, lconv, pnewdt, &
-               k1, -simnr, props, f_data%glob%cmname, f_data%glob%umat_address, f_data%glob%nlgeom, iter_err_norm)
-    
-        if (.not.lconv) then
-           call write_output('No convergence for local material problem after element removal', 'status', 'sim:atp')
-           exit GEOM_ITER_LOOP
-        endif
-        
         ! Solve zero external displacement increment
-        deallocate(free_dofs)
+        call element_setup(ngp, nenod, .false., -simnr)
         call gen_free_dofs(free_dofs, known_dofs, ndof, [1,1,1,1], .false.)
         call solve_incr(rpos, h0, load, disp, f_data%sim(simnr)%init%temp_init, 0.d0, time, f_data%sim(simnr)%atp_er%time_remesh, free_dofs, &
                known_dofs, gp_F, gp_stress, gp_sv, gp_strain, u0, du, f_data%sim(1)%iter, niter, lconv, pnewdt, &
@@ -440,7 +471,7 @@ implicit none
     sim_out%end_res%h0_true     = sim_in%end_res%h0_true
 end subroutine
 
-subroutine remesh(r0outer, f_data, f_data_old, simnr, rpos, h0, gp_stress, gp_strain, gp_F, gp_sv, u0)
+subroutine remesh(r0outer, f_data, f_data_old, simnr, rpos, h0, gp_stress, gp_strain, gp_F, gp_sv, u0, material, load_info)
 ! Given a guess of initial new nodal positions r0, determine
 ! u0         Nodal displacements (including axial and rotation on positions 1 and 2), interpolated 
 ! gp_stress  Stress at gauss points (interpolated)
@@ -475,6 +506,11 @@ implicit none
     double precision, allocatable   :: Bs_mat(:,:)
     integer, allocatable            :: dof(:)
     double precision                :: hold                 ! Height (gauge length) for old simulation
+    
+    type(gp_typ)                    :: gp_left, gp_right, gp_new
+    type(element_typ)               :: element_info
+    type(material_typ)              :: material
+    type(load_typ)                  :: load_info
     
     integer                         :: res_fid              ! Result file fid
     character(len=30)               :: format_spec          ! Writing format
@@ -537,35 +573,47 @@ implicit none
     ! "State type variables" (State variables and stress are interpolated)
     ! "Kinematic variables" (Strain and deformation gradient are calculated from interpolated displacements)
     allocate(dof(nenod), ue_r(nenod), dNpdR(nenod), Np(nenod), Bs_mat(6,nenod+2))
+    
+    call element_setup(ngp, nenod, .false., simnr)  ! New element
+    allocate(element_info%pos(nenod), element_info%ue_r(nenod))
+    allocate(gp_left%statev(f_data%glob%nstatv), gp_right%statev(f_data%glob%nstatv))
+    load_info%uz = u0(1)
+    load_info%phi = u0(2)
+    load_info%h0 = h0
     ind = 1
     ind_old = 2
-    call element_setup(ngp, nenod, .false., simnr)  ! New element 
+    
     do iel = 1,nel
         do inod=1,nenod
             dof(inod) = (inod+2) + (nenod-1)*(iel-1)
         enddo
-        ue_r = u0(dof)
+        element_info%ue_r = u0(dof)
+        element_info%pos = rpos(:,iel)
+        element_info%number = iel
         
         do igp = 1,ngp
-            ! Interpolation (not in function for efficiency, same multiplication factor)
+            ! Determine which gauss points to interpolate from
             do while ((gp_pos0(ind)>gp_pos0_old(ind_old)).and.(ind_old<size(gp_pos0_old)))
                 ind_old = ind_old + 1
             enddo
-            ! Common multiplication factor for interpolation: ( r0 - (r0old-) )/( (r0old+) - (r0old-) )
-            ! + and - indicate above and below r0
-            mult_factor = (gp_pos0(ind)-gp_pos0_old(ind_old-1))/(gp_pos0_old(ind_old)-gp_pos0_old(ind_old-1))
             
-            ! Interpolation: v = v(r0old-) + (v(rold+)-v(rold-))*mult_factor
-            gp_stress(:,igp,iel) = f_data_old%sim(1)%end_res%stress_end(ind_old-1, :) &
-                + (f_data_old%sim(1)%end_res%stress_end(ind_old,:)-f_data_old%sim(1)%end_res%stress_end(ind_old-1,:))*mult_factor
+            ! Assign old info to the gauss points from which we interpolate. No need to assign kinematic variables (F and strain) as these are not interpolated.
+            gp_left%pos = gp_pos0_old(ind_old - 1)
+            gp_left%stress = f_data_old%sim(1)%end_res%stress_end(ind_old-1, :)
+            gp_left%statev = f_data_old%sim(1)%end_res%statev_end(ind_old-1, :)
+            gp_left%converged = .true.
             
-            gp_sv(:,igp,iel) = f_data_old%sim(1)%end_res%statev_end(ind_old-1, :) &
-                + (f_data_old%sim(1)%end_res%statev_end(ind_old,:)-f_data_old%sim(1)%end_res%statev_end(ind_old-1,:))*mult_factor
+            gp_right%pos = gp_pos0_old(ind_old)
+            gp_right%stress = f_data_old%sim(1)%end_res%stress_end(ind_old, :)
+            gp_right%statev = f_data_old%sim(1)%end_res%statev_end(ind_old, :)
+            gp_right%converged = .true.
             
-            ! Kinematic calculations
-            eps_old0 = 0.d0
-            call shapefun(gp_pos0(ind), rpos(:,iel), dNpdR, Np, ue_r, rgp, dr_dr0)
-            call FBeps_calc(gp_F(:,igp,iel), Bs_mat, eps0, gp_strain(:,igp,iel), dNpdR, Np, dr_dr0, rgp, u0(2), u0(1), gp_pos0(ind), h0, eps_old0)
+            call get_interpolated_state(gp_pos0(ind), gp_left, gp_right, gp_new, element_info, material, load_info)
+            
+            gp_stress(:,igp,iel) = gp_new%stress
+            gp_sv(:,igp,iel) = gp_new%statev
+            gp_strain(:,igp,iel) = gp_new%strain
+            gp_F(:,igp,iel) = gp_new%F
             
             ind = ind + 1
         enddo
@@ -680,6 +728,146 @@ implicit none
     
 end function
 
+recursive subroutine get_interpolated_state(new_pos, gp0_left, gp0_right, gp_new, element, material, load)
+implicit none
+    double precision    :: new_pos
+    type(gp_typ)        :: gp0_left, gp0_right, gp_new
+    type(element_typ)   :: element  ! Information about element
+    type(material_typ)  :: material ! Information about material
+    type(load_typ)      :: load     ! Information about loading
     
+    type(gp_typ)        :: gp_left, gp_right, gp_left_new, gp_right_new
+
+    integer             :: max_num_refinements, k1
+    double precision    :: dx
+
+    call transfer_state(gp_left, gp0_left)
+    call transfer_state(gp_right, gp0_right)
+    max_num_refinements = 5
+    do k1=1,max_num_refinements
+        call interpolate_state(new_pos, gp_left, gp_right, gp_new, element, material, load)
+        if (gp_new%converged) then
+            exit
+        endif
+        write(*,*) ' ----- Splitting used ----- '
+        dx = min(new_pos - gp_left%pos, gp_right%pos - new_pos)/2.d0
+        call get_interpolated_state(gp_left%pos + dx, gp_left, gp_right, gp_left_new, element, material, load)
+        call get_interpolated_state(gp_right%pos- dx, gp_left, gp_right, gp_right_new, element, material, load)
+        
+        call transfer_state(gp_left, gp_left_new)
+        call transfer_state(gp_right, gp_right_new)
+    enddo
+    
+    if (.not.gp_new%converged) then
+        call write_output('No convergence for state interpolation, setting error to huge(1.d0)', 'status', 'atp:element_removal')
+        interpolate_failed = .true.
+    endif
+    
+end subroutine
+
+subroutine interpolate_state(pos, gp_left, gp_right, gp, element, material, load)
+implicit none
+    double precision    :: pos
+    type(gp_typ)        :: gp_left, gp_right, gp
+    type(element_typ)   :: element
+    type(material_typ)  :: material ! Information about material
+    type(load_typ)      :: load     ! Information about loading
+    double precision    :: amount_right
+    double precision    :: rgp, drdR
+    double precision, allocatable :: dNpdR(:), Np(:)
+    
+    if (.not.allocated(gp%statev)) then
+        allocate(gp%statev(size(gp_left%statev)))
+    endif
+    
+    allocate(dNpdR(size(element%pos)), Np(size(element%pos)))
+    ! Interpolate internal state
+    amount_right = (pos-gp_left%pos)/(gp_right%pos - gp_left%pos)
+    
+    gp%pos = pos
+    gp%statev = gp_left%statev*(1-amount_right) + gp_right%statev*amount_right
+    gp%stress = gp_left%stress*(1-amount_right) + gp_right%stress*amount_right
+    
+    
+    
+    ! Kinematic calculations: Calculate new gp%strain and gp%F
+    call shapefun(pos, element%pos, dNpdR, Np, element%ue_r, rgp, drdR)
+    
+    gp%F(1) = drdR
+    gp%F(2) = rgp/pos
+    gp%F(3) = 1.d0 + load%uz/load%h0
+    gp%F(5) = rgp*load%phi/load%h0
+    
+    gp%strain(1) = drdR - 1.d0
+    gp%strain(2) = (rgp/pos) - 1.d0
+    gp%strain(3) = load%uz/load%h0
+    gp%strain(6) = pos*load%phi/load%h0 ! Engineering strain
+    
+    ! Check for local convergence
+    call check_for_local_convergence(gp, element, material, load)
+    
+
+end subroutine
+
+subroutine check_for_local_convergence(gp, element, material, load)
+implicit none
+    type(gp_typ)                        :: gp       ! Gauss point information
+    type(element_typ)                   :: element  ! Element information
+    type(material_typ)                  :: material ! Information about material
+    type(load_typ)                      :: load     ! Information about loading
+    ! Internal variables
+    procedure(umat_template),pointer    :: umat     ! Addresss to umat subroutine
+    character(len=80)                   :: cmname
+    integer                             :: nstatv, nprops, noel, kstep, kinc
+    double precision                    :: dtemp, pnewdt, celent, sse, spd, scd, rpl, drpldt
+    double precision                    :: ddsdde(6,6), ddsddt(6), drplde(6)
+    double precision                    :: dstran(6), abatime(2), coords(3), drot(3,3), dfgrd0(3,3)
+    double precision                    :: dfgrd1(3,3), predef(1), dpred(1)
+    integer                             :: k1
+    umat => material%umat_address
+    ! Check for local convergence and update the stress and state variables accordingly
+    dstran = 0.d0
+    abatime = 0.d0
+    dtemp = 0.d0
+    celent = element%pos(size(element%pos)) - element%pos(1)
+    drot = 0.d0
+    do k1=1,3
+        drot(k1,k1)=1.d0
+    enddo
+    coords = [gp%pos, 0.d0, 0.d0]
+    dfgrd0 = matrix(gp%F)
+    dfgrd1 = dfgrd0
+    pnewdt = 2.d0
+    call umat(gp%stress, gp%statev, ddsdde, sse, spd, scd, rpl, ddsddt, drplde, drpldt,&
+              gp%strain, dstran, abatime, load%dtime, load%temperature, dtemp, predef, dpred,&
+              material%cmname, 3, 3, 6, size(gp%statev), material%props, size(material%props),&
+              coords, drot, pnewdt, celent, dfgrd0, dfgrd1, element%number, 0, 1, 1, 0, 0)
+    
+    if (pnewdt < 1.d0) then
+        gp%converged = .false.
+    else
+        gp%converged = .true.
+    endif
+
+end subroutine
+
+subroutine transfer_state(gp, gp_base)
+implicit none
+    type(gp_typ)    :: gp, gp_base
+    
+    if (.not.allocated(gp%statev)) then
+        allocate(gp%statev(size(gp_base%statev)))
+    endif
+    
+    gp%pos       = gp_base%pos
+    gp%strain    = gp_base%strain
+    gp%stress    = gp_base%stress
+    gp%statev    = gp_base%statev
+    gp%F         = gp_base%F
+    gp%converged = gp_base%converged
+
+end subroutine
+
+
 end module 
 
