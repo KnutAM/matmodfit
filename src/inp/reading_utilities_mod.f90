@@ -34,8 +34,8 @@ use gen_util_mod
     integer, parameter      :: max_vector_length = 150
     character, parameter    :: comment_symbol = '!'
     
-    integer, parameter      :: maxsim = 100 ! Maximum number of simulations
-    integer, parameter      :: maxopt = 100 ! Maximum number of simulations
+    integer, parameter      :: maxsim = 10000 ! Maximum number of simulations
+    integer, parameter      :: maxopt = 10000 ! Maximum number of simulations
 
     integer                 :: inpfilenum
     integer                 :: linecount
