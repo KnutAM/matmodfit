@@ -74,7 +74,7 @@ subroutine atp_import_mesh(mesh1d, len_adj, adj_geom, u0, h0, ngp, bbar, nnod, n
     ro = Rpos(nnod, nel)
     
     disp_conv = (/h0, 1.d0, ri, ro/)
-    if (ri<1.d-12) then
+    if (ri<1.d-12*ro) then
         disp_conv(3) = 0.d0
     endif
     

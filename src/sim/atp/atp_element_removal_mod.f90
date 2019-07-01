@@ -199,7 +199,7 @@ implicit none
     load_info%temperature = f_data%sim(simnr)%init%temp_init
     
 
-    new_is_solid = (f_data%sim(simnr)%mesh1d%node_pos(1)<1e-12)
+    new_is_solid = f_data%sim(simnr)%mesh1d%node_pos(1) < (1e-12*f_data%sim(simnr)%mesh1d%node_pos(nel+1))
     if (new_is_solid) then ! Force inner node to be zero
         node_pos_guess(1) = 0.d0
     endif
