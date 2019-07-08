@@ -752,6 +752,7 @@ implicit none
     max_num_refinements = 5
     max_recursion_depth = 5
     recursion_depth = recursion_depth + 1
+    write(*,*) interp_failed
     do while (num_refinements < max_num_refinements .and. recursion_depth < max_recursion_depth .and. .not.interp_failed)
         call interpolate_state(new_pos, gp_left, gp_right, gp_new, element, material, load)
         if (gp_new%converged) then
@@ -772,6 +773,8 @@ implicit none
     if (.not.gp_new%converged .and. .not.interp_failed) then
         call write_output('No convergence for state interpolation, setting error to huge(1.d0)', 'status', 'atp:element_removal')
         interp_failed = .true.
+        call write_output('interp_failed set to true')
+        call write_output('num_refinements: '//int2str(num_refinements)//', recursion_depth: '//int2str(recursion_depth))
     endif
     
 end subroutine
