@@ -511,6 +511,7 @@ implicit none
     type(element_typ)               :: element_info
     type(material_typ)              :: material
     type(load_typ)                  :: load_info
+    integer                         :: recursion_depth
     
     integer                         :: res_fid              ! Result file fid
     character(len=30)               :: format_spec          ! Writing format
@@ -607,8 +608,8 @@ implicit none
             gp_right%stress = f_data_old%sim(1)%end_res%stress_end(ind_old, :)
             gp_right%statev = f_data_old%sim(1)%end_res%statev_end(ind_old, :)
             gp_right%converged = .true.
-            
-            call get_interpolated_state(gp_pos0(ind), gp_left, gp_right, gp_new, element_info, material, load_info)
+            recursion_depth = 0
+            call get_interpolated_state(gp_pos0(ind), gp_left, gp_right, gp_new, element_info, material, load_info, recursion_depth)
             
             gp_stress(:,igp,iel) = gp_new%stress
             gp_sv(:,igp,iel) = gp_new%statev
@@ -728,13 +729,14 @@ implicit none
     
 end function
 
-recursive subroutine get_interpolated_state(new_pos, gp0_left, gp0_right, gp_new, element, material, load)
+recursive subroutine get_interpolated_state(new_pos, gp0_left, gp0_right, gp_new, element, material, load, recursion_depth)
 implicit none
     double precision    :: new_pos
     type(gp_typ)        :: gp0_left, gp0_right, gp_new
     type(element_typ)   :: element  ! Information about element
     type(material_typ)  :: material ! Information about material
     type(load_typ)      :: load     ! Information about loading
+    integer             :: recursion_depth
     
     type(gp_typ)        :: gp_left, gp_right, gp_left_new, gp_right_new
 
@@ -744,15 +746,17 @@ implicit none
     call transfer_state(gp_left, gp0_left)
     call transfer_state(gp_right, gp0_right)
     max_num_refinements = 5
+    recursion_depth = recursion_depth + 1
     do k1=1,max_num_refinements
         call interpolate_state(new_pos, gp_left, gp_right, gp_new, element, material, load)
         if (gp_new%converged) then
             exit
         endif
-        write(*,*) ' ----- Splitting used ----- '
+        call write_output(' ----- Splitting used ----- ')
+        call write_output('num_refinements: '//int2str(k1)//', recursion_depth: '//int2str(recursion_depth))
         dx = min(new_pos - gp_left%pos, gp_right%pos - new_pos)/2.d0
-        call get_interpolated_state(gp_left%pos + dx, gp_left, gp_right, gp_left_new, element, material, load)
-        call get_interpolated_state(gp_right%pos- dx, gp_left, gp_right, gp_right_new, element, material, load)
+        call get_interpolated_state(gp_left%pos + dx, gp_left, gp_right, gp_left_new, element, material, load, recursion_depth)
+        call get_interpolated_state(gp_right%pos- dx, gp_left, gp_right, gp_right_new, element, material, load, recursion_depth)
         
         call transfer_state(gp_left, gp_left_new)
         call transfer_state(gp_right, gp_right_new)
