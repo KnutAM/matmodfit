@@ -740,29 +740,31 @@ implicit none
     
     type(gp_typ)        :: gp_left, gp_right, gp_left_new, gp_right_new
 
-    integer             :: max_num_refinements, k1
+    integer             :: max_num_refinements, num_refinements, max_recursion_depth
     double precision    :: dx
 
     call transfer_state(gp_left, gp0_left)
     call transfer_state(gp_right, gp0_right)
     max_num_refinements = 5
+    max_recursion_depth = 5
     recursion_depth = recursion_depth + 1
-    do k1=1,max_num_refinements
+    do while (num_refinements < max_num_refinements .and. recursion_depth < max_recursion_depth .and. .not.interpolate_failed)
         call interpolate_state(new_pos, gp_left, gp_right, gp_new, element, material, load)
         if (gp_new%converged) then
             exit
         endif
         call write_output(' ----- Splitting used ----- ')
-        call write_output('num_refinements: '//int2str(k1)//', recursion_depth: '//int2str(recursion_depth))
+        call write_output('num_refinements: '//int2str(num_refinements)//', recursion_depth: '//int2str(recursion_depth))
         dx = min(new_pos - gp_left%pos, gp_right%pos - new_pos)/2.d0
         call get_interpolated_state(gp_left%pos + dx, gp_left, gp_right, gp_left_new, element, material, load, recursion_depth)
         call get_interpolated_state(gp_right%pos- dx, gp_left, gp_right, gp_right_new, element, material, load, recursion_depth)
         
         call transfer_state(gp_left, gp_left_new)
         call transfer_state(gp_right, gp_right_new)
+        num_refinements = num_refinements + 1
     enddo
     
-    if (.not.gp_new%converged) then
+    if (.not.gp_new%converged .and. .not.interpolate_failed) then
         call write_output('No convergence for state interpolation, setting error to huge(1.d0)', 'status', 'atp:element_removal')
         interpolate_failed = .true.
     endif
