@@ -512,6 +512,7 @@ implicit none
     type(material_typ)              :: material
     type(load_typ)                  :: load_info
     integer                         :: recursion_depth
+    logical                         :: interp_failed
     
     integer                         :: res_fid              ! Result file fid
     character(len=30)               :: format_spec          ! Writing format
@@ -609,7 +610,9 @@ implicit none
             gp_right%statev = f_data_old%sim(1)%end_res%statev_end(ind_old, :)
             gp_right%converged = .true.
             recursion_depth = 0
-            call get_interpolated_state(gp_pos0(ind), gp_left, gp_right, gp_new, element_info, material, load_info, recursion_depth)
+            interp_failed = .false.
+            call get_interpolated_state(gp_pos0(ind), gp_left, gp_right, gp_new, element_info, material, load_info, recursion_depth, interp_failed)
+            interpolate_failed = interp_failed
             
             gp_stress(:,igp,iel) = gp_new%stress
             gp_sv(:,igp,iel) = gp_new%statev
@@ -729,7 +732,7 @@ implicit none
     
 end function
 
-recursive subroutine get_interpolated_state(new_pos, gp0_left, gp0_right, gp_new, element, material, load, recursion_depth)
+recursive subroutine get_interpolated_state(new_pos, gp0_left, gp0_right, gp_new, element, material, load, recursion_depth, interp_failed)
 implicit none
     double precision    :: new_pos
     type(gp_typ)        :: gp0_left, gp0_right, gp_new
@@ -737,6 +740,7 @@ implicit none
     type(material_typ)  :: material ! Information about material
     type(load_typ)      :: load     ! Information about loading
     integer             :: recursion_depth
+    logical             :: interp_failed
     
     type(gp_typ)        :: gp_left, gp_right, gp_left_new, gp_right_new
 
@@ -748,7 +752,7 @@ implicit none
     max_num_refinements = 5
     max_recursion_depth = 5
     recursion_depth = recursion_depth + 1
-    do while (num_refinements < max_num_refinements .and. recursion_depth < max_recursion_depth .and. .not.interpolate_failed)
+    do while (num_refinements < max_num_refinements .and. recursion_depth < max_recursion_depth .and. .not.interp_failed)
         call interpolate_state(new_pos, gp_left, gp_right, gp_new, element, material, load)
         if (gp_new%converged) then
             exit
@@ -756,17 +760,18 @@ implicit none
         call write_output(' ----- Splitting used ----- ')
         call write_output('num_refinements: '//int2str(num_refinements)//', recursion_depth: '//int2str(recursion_depth))
         dx = min(new_pos - gp_left%pos, gp_right%pos - new_pos)/2.d0
-        call get_interpolated_state(gp_left%pos + dx, gp_left, gp_right, gp_left_new, element, material, load, recursion_depth)
-        call get_interpolated_state(gp_right%pos- dx, gp_left, gp_right, gp_right_new, element, material, load, recursion_depth)
-        
+        call get_interpolated_state(gp_left%pos + dx, gp_left, gp_right, gp_left_new, element, material, load, recursion_depth, interp_failed)
+        if (interp_failed) exit
+        call get_interpolated_state(gp_right%pos- dx, gp_left, gp_right, gp_right_new, element, material, load, recursion_depth, interp_failed)
+        if (interp_failed) exit
         call transfer_state(gp_left, gp_left_new)
         call transfer_state(gp_right, gp_right_new)
         num_refinements = num_refinements + 1
     enddo
     
-    if (.not.gp_new%converged .and. .not.interpolate_failed) then
+    if (.not.gp_new%converged .and. .not.interp_failed) then
         call write_output('No convergence for state interpolation, setting error to huge(1.d0)', 'status', 'atp:element_removal')
-        interpolate_failed = .true.
+        interp_failed = .true.
     endif
     
 end subroutine
