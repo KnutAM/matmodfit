@@ -13,6 +13,8 @@ implicit none
     public  :: atp_element_removal ! Axial-torsion-pressure element removal routine
     
     logical :: interpolate_failed = .false.
+    integer :: max_num_refinements = 5 
+    integer :: max_recursion_depth = 10 ! Each time a refinement occurs, 2 recursion depths are counted
     
     type gp_typ
         double precision                :: pos                  ! Radial (undeformed) position of gauss point
@@ -744,13 +746,11 @@ implicit none
     
     type(gp_typ)        :: gp_left, gp_right, gp_left_new, gp_right_new
 
-    integer             :: max_num_refinements, num_refinements, max_recursion_depth
+    integer             :: num_refinements
     double precision    :: dx
 
     call transfer_state(gp_left, gp0_left)
     call transfer_state(gp_right, gp0_right)
-    max_num_refinements = 5
-    max_recursion_depth = 5
     recursion_depth = recursion_depth + 1
     num_refinements = 0
     do while (num_refinements < max_num_refinements .and. recursion_depth < max_recursion_depth .and. .not.interp_failed)
