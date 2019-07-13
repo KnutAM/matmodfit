@@ -307,6 +307,7 @@ subroutine gen_free_dofs(free_dofs, known_dofs, ndof_tot, ctrl, intpres_extstrn)
         if (nfree==0) then  ! If no free degrees of freedom, we handle this special case separately!
             allocate(free_dofs(1))
             free_dofs = -1
+            allocate(known_dofs, source=free_dofs)
         else
             allocate(free_dofs(nfree))
             ctrl_dofs = (/1, 2, 3, ndof_tot/)
