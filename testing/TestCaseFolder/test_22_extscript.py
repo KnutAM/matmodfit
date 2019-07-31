@@ -11,9 +11,9 @@ else:
     evec_out = False
 
 # Save file names
-mpar_file = sys.argv[2]
-error_file= sys.argv[3]
-evec_file = sys.argv[4]
+mpar_file = sys.argv[3]
+error_file= sys.argv[4]
+evec_file = sys.argv[5]
 
 # Read in material parameters
 mpar_fid = open(mpar_file, 'r')
