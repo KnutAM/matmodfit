@@ -124,10 +124,10 @@ result_onlymain = f_data%sim(simnr)%outp%result_onlymain
 result_inclexp  = f_data%sim(simnr)%outp%result_inclexp
 
 ! == Import initial conditions (and adjust experiment data if continued analysis of separate experiments) ==
-call atp_import_init(f_data, simnr, exp_info, nstatv, gp_s0, gp_strain0, gp_F0, gp_sv0, u0, temp, disp, load, disp_exp, load_exp, time, expdata, len_adj, adj_geom)
+call atp_import_init(f_data, simnr, exp_info, nstatv, gp_s0, gp_strain0, gp_F0, gp_sv0, u0, temp, disp, load, disp_exp, load_exp, time, expdata, len_adj)
 
 ! == Mesh and geometry == 
-call atp_import_mesh(f_data%sim(simnr)%mesh1d, len_adj, adj_geom, u0, h0, ngp, bbar, nnod, nel, ndof_tot, rpos, disp_conv, iter_err_norm)
+call atp_import_mesh(f_data%sim(simnr)%mesh1d, len_adj, u0, h0, ngp, bbar, nnod, nel, ndof_tot, rpos, disp_conv, iter_err_norm)
 call element_setup(ngp, nnod, bbar, simnr)
 
 !Allocate gp_, dispvars, additional_output

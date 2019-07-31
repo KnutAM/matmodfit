@@ -292,7 +292,7 @@ implicit none
         
         error = huge(1.d0)
     else
-        call set_end_values(f_data_relax%sim(1), f_data%sim(simnr))
+        call set_end_values(f_data_relax%sim(1), f_data%sim(simnr), node_pos_guess)
     endif
 
     call system_clock ( clock_count, clock_rate)
@@ -379,7 +379,7 @@ implicit none
     
     ! Set new node positions if input
     if (present(rpos)) then
-        f_data_relax%sim(1)%mesh1d%node_pos = (/rpos(1,:), rpos(size(rpos,1),size(rpos,2))/)
+        f_data_relax%sim(1)%mesh1d%node_pos_undef = (/rpos(1,:), rpos(size(rpos,1),size(rpos,2))/)
         if (present(h0)) then
             f_data_relax%sim(1)%mesh1d%h0 = h0
         else
@@ -393,7 +393,7 @@ implicit none
     endif
     
     ! If sample is zero, don't allow changing the inner radius
-    if (f_data_relax%sim(1)%mesh1d%node_pos(1)<1.d-12) then
+    if (f_data_relax%sim(1)%mesh1d%node_pos_undef(1)<1.d-12) then
         f_data_relax%sim(1)%exp%ctrl(4,1) = 1
     endif
     
@@ -432,10 +432,11 @@ implicit none
     
 end function
 
-subroutine set_end_values(sim_in, sim_out)
+subroutine set_end_values(sim_in, sim_out, node_pos_guess)
 implicit none
     type(sim_typ), intent(in)       :: sim_in
     type(sim_typ), intent(inout)    :: sim_out
+    double precision, intent(in)    :: node_pos_guess(:)
     integer                         :: ngp_total, nstatv
     
     ngp_total = size(sim_in%end_res%stress_end, 1)
@@ -471,6 +472,14 @@ implicit none
     sim_out%end_res%disp_end    = sim_in%end_res%disp_end
     sim_out%end_res%load_end    = sim_in%end_res%load_end
     sim_out%end_res%h0_true     = sim_in%end_res%h0_true
+    
+    ! Set final undeformed node positions for later use
+    if (allocated(sim_out%mesh1d%node_pos_undef)) then
+        sim_out%mesh1d%node_pos_undef = node_pos_guess
+    else
+        allocate(sim_out%mesh1d%node_pos_undef, source=node_pos_guess)
+    endif
+    
 end subroutine
 
 subroutine remesh(r0outer, f_data, f_data_old, simnr, rpos, h0, gp_stress, gp_strain, gp_F, gp_sv, u0, material, load_info)

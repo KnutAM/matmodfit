@@ -11,37 +11,36 @@ module atp_import_mod
     contains
 ! == import routines ==
 !Import mesh
-subroutine atp_import_mesh(mesh1d, len_adj, adj_geom, u0, h0, ngp, bbar, nnod, nel, ndof_tot, Rpos, disp_conv, iter_err_norm)
+subroutine atp_import_mesh(mesh1d, len_adj, u0, h0, ngp, bbar, nnod, nel, ndof_tot, Rpos, disp_conv, iter_err_norm)
     implicit none
     type(mesh1d_typ), intent(inout) :: mesh1d
     double precision, intent(in)    :: len_adj, u0(:)
-    logical, intent(in)             :: adj_geom
     double precision                :: h0, disp_conv(4)
     integer                         :: ngp, nnod, nel, ndof_tot, n_nodes, k1, k2, k3
     logical                         :: bbar
     double precision, allocatable   :: Rpos(:,:), iter_err_norm(:)
     double precision                :: ri, ro
 
-    h0      = mesh1d%h0                  ! Initial element height (z-dimension)
-    ngp     = mesh1d%ngp                 ! Number of gauss integration points per element
-    bbar    = mesh1d%abaqus_bbar         ! Use Abaqus' bbar method or not
-    nel     = size(mesh1d%node_pos)-1    ! Number of elements
-    nnod    = 1 + mesh1d%element_order   ! Number of nodes per element
-    n_nodes = nel*(nnod-1)+1                        ! Total number of nodes
-    ndof_tot= 2 + n_nodes                           ! Total number of degrees of freedom
+    h0      = mesh1d%h0*len_adj             ! Initial element height (z-dimension) (Adjusted if cont_analysis < 0)
+    ngp     = mesh1d%ngp                    ! Number of gauss integration points per element
+    bbar    = mesh1d%abaqus_bbar            ! Use Abaqus' bbar method or not
+    nel     = size(mesh1d%node_pos_undef)-1 ! Number of elements
+    nnod    = 1 + mesh1d%element_order      ! Number of nodes per element
+    n_nodes = nel*(nnod-1)+1                ! Total number of nodes
+    ndof_tot= 2 + n_nodes                   ! Total number of degrees of freedom
     
     ! Define the Rpos and iter_err_norm variables
     allocate(Rpos(nnod, nel), iter_err_norm(ndof_tot))
-    if (mesh1d%node_pos(1)<1.d-20) then
+    if (mesh1d%node_pos_undef(1)<1.d-20) then
         iter_err_norm(3) = 0.d0
     else
-        iter_err_norm(3) = 1.d0/(mesh1d%node_pos(1)*h0*2.d0)
+        iter_err_norm(3) = 1.d0/(mesh1d%node_pos_undef(1)*h0*2.d0)
     endif
     k3 = 4
 
     do k1=1,nel
-        Rpos(   1,k1) = mesh1d%node_pos(k1)
-        Rpos(nnod,k1) = mesh1d%node_pos(k1+1)
+        Rpos(   1,k1) = mesh1d%node_pos_undef(k1)
+        Rpos(nnod,k1) = mesh1d%node_pos_undef(k1+1)
         do k2=2,(nnod-1)
             ! Linear interpolate positions between first and last node
             Rpos(k2,k1) = Rpos(1,k1) + (k2-1)*(Rpos(nnod,k1)-Rpos(1,k1))/(nnod-1)
@@ -51,24 +50,6 @@ subroutine atp_import_mesh(mesh1d, len_adj, adj_geom, u0, h0, ngp, bbar, nnod, n
         iter_err_norm(k3) = 1.d0/(Rpos(nnod,k1)*h0*2.d0)
         k3 = k3 + 1
     enddo
-    
-    if (adj_geom) then
-        ! Adjust radial positions
-        k3 = 3
-        do k1=1,nel
-            do k2=1,nnod
-                Rpos(k2,k1) = Rpos(k2,k1) - u0(k3)
-                mesh1d%node_pos_undef(k3-2) = Rpos(k2,k1) ! Will be overwritten with the same value, but this is ok.
-                k3 = k3 + 1
-            enddo
-            k3 = k3 - 1
-        enddo
-        ! Adjust gauge length
-        h0 = h0*len_adj
-        
-    endif
-    
-    
 
     ri = Rpos(1,1)
     ro = Rpos(nnod, nel)
@@ -78,28 +59,27 @@ subroutine atp_import_mesh(mesh1d, len_adj, adj_geom, u0, h0, ngp, bbar, nnod, n
         disp_conv(3) = 0.d0
     endif
     
-
     iter_err_norm((/1,2/)) = 1.d0/(/(ro**2-ri**2), (ro**3-ri**3)/3.d0/)
 
 end subroutine atp_import_mesh
 
 !Import initial conditions
-subroutine atp_import_init(f_data, simnr, exp_info, nstatv, gp_s0, gp_strain0, gp_F0, gp_sv0, u0, temp, disp, load, disp_exp, load_exp, time, expdata, len_adj, adj_geom)
+subroutine atp_import_init(f_data, simnr, exp_info, nstatv, gp_s0, gp_strain0, gp_F0, gp_sv0, u0, temp, disp, load, disp_exp, load_exp, time, expdata, len_adj)
 use sim_getincr_mod
 ! import the initial conditions
 implicit none
     logical, parameter, dimension(4)::  strain_inds = (/.true., .false., .true., .true./)
     integer, parameter, dimension(4)::  disp_inds = (/2,4,6,8/)
-    type(fdata_typ), intent(in)    ::  f_data
+    type(fdata_typ), intent(inout)  ::  f_data
     integer, intent(in)             ::  simnr
     integer, intent(in)             ::  exp_info(:)
     integer, intent(out)            ::  nstatv
     double precision, allocatable   ::  gp_s0(:,:,:), gp_strain0(:,:,:), gp_F0(:,:,:), gp_sv0(:,:,:), u0(:)    !intent=out
     double precision, intent(out)   ::  temp, disp(4), load(4), disp_exp(4), load_exp(4), time(2), len_adj
     double precision, intent(inout) ::  expdata(:,:)
-    logical, intent(out)            ::  adj_geom    ! Should the geometry be adjusted (i.e. if cont_analysis<0)
         
     ! internal variables
+    logical                         ::  adj_geom    ! Should the geometry be adjusted (i.e. if cont_analysis<0)
     double precision                ::  temp_new
     integer                         ::  cont_analysis
     integer                         ::  fpos, col, k1
@@ -167,12 +147,20 @@ implicit none
         disp = f_data%sim(cont_analysis)%end_res%disp_end
         load = f_data%sim(cont_analysis)%end_res%load_end
         
+        ! Check that node_pos_undef has been defined in previous simulation and allocate in current if necessary
+        if (allocated(f_data%sim(cont_analysis)%mesh1d%node_pos_undef)) then
+            if (.not.allocated(f_data%sim(simnr)%mesh1d%node_pos_undef)) then
+                allocate(f_data%sim(simnr)%mesh1d%node_pos_undef(size(f_data%sim(cont_analysis)%mesh1d%node_pos_undef)))    
+            endif
+            f_data%sim(simnr)%mesh1d%node_pos_undef = f_data%sim(cont_analysis)%mesh1d%node_pos_undef
+        else
+            call write_output('node_pos_undef from analysis '//int2str(cont_analysis)//' to be continued from is not defined', 'error', 'atp')
+        endif
+        
+        
         if (adj_geom) then ! New experiment (extensometer new references) [cont_analysis<0]
             ! Adjustment factor for the gauge length (adjusted in import_mesh):
             len_adj = 1.d0/(1.d0 + disp(1))
-            
-            ! Nodal positions adjusted in import_mesh based on u0
-            adj_geom = .true.
             
             ! Adjust the initial axial displacement and rotation
             u0(1:2) = u0(1:2)*(f_data%sim(simnr)%mesh1d%h0/(1.d0+disp(1)))/f_data%sim(cont_analysis)%end_res%h0_true
@@ -191,7 +179,6 @@ implicit none
                     endif
                 endif
             enddo
-            
         endif
     else
         ! Assign initial displacements and loads 
@@ -212,6 +199,14 @@ implicit none
         else
             gp_sv0 = 0.d0
         endif
+        
+        ! Define undeformed mesh
+        if (allocated(f_data%sim(simnr)%mesh1d%node_pos_undef)) then
+            f_data%sim(simnr)%mesh1d%node_pos_undef = f_data%sim(simnr)%mesh1d%node_pos
+        else
+            allocate(f_data%sim(simnr)%mesh1d%node_pos_undef, source=f_data%sim(simnr)%mesh1d%node_pos)
+        endif
+        
     endif
         
     ! Assign initial experiment values
