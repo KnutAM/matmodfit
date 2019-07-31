@@ -258,7 +258,7 @@ implicit none
 
     call check_sim_exp(sim%exp)
     
-    call check_sim_mesh1d(sim%mesh1d, sim%exp%ctrl)
+    call check_sim_mesh1d(sim%mesh1d, sim%exp%ctrl, continued_analysis=sim%init%cont_analysis.ne.0)
 
     call check_sim_iter(sim%iter)
 
@@ -278,7 +278,7 @@ implicit none
     call check_sim_iter(sim%iter)
     
     dummy_ctrl(:,1) = (/1.d0, 1.d0, 1.d0, 1.d0, 1.d0/)
-    call check_sim_mesh1d(sim%mesh1d, dummy_ctrl)
+    call check_sim_mesh1d(sim%mesh1d, dummy_ctrl, continued_analysis=.true.)
     
     ! 2) Check that input is reasonable
     if (sim%init%cont_analysis==0) then
@@ -380,10 +380,11 @@ integer         :: k1
 
 end subroutine
 
-subroutine check_sim_mesh1d(mesh1d, ctrl)
+subroutine check_sim_mesh1d(mesh1d, ctrl, continued_analysis)
 implicit none
 type(mesh1d_typ)    :: mesh1d
 double precision    :: ctrl(:,:)
+logical             :: continued_analysis
 
     if (allocated(mesh1d%node_pos)) then
         if (any(mesh1d%node_pos<0.d0)) then
@@ -394,8 +395,8 @@ double precision    :: ctrl(:,:)
             call bad_input('node_pos must be monotonically strictly increasing')
         endif
         allocate(mesh1d%node_pos_undef, source=mesh1d%node_pos)
-    else
-        call bad_input('node_pos must be defined')
+    elseif (.not.continued_analysis) then
+        call bad_input('node_pos must be defined if analysis is not continued')
     endif
 
     if (dbl_compare(mesh1d%node_pos(1),0.d0,1.d-20)) then
