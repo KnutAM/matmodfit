@@ -81,12 +81,19 @@ implicit none
     type(fdata_typ)                 :: f_data_initial_relax ! Data belonging to relaxation simulation
 
     ! Node position iterations
+    double precision, allocatable   :: node_pos_rel(:)                                      ! Relative node positions, used to calculate full node_pos vector
+    double precision                :: node_pos_ext_guess(2), node_pos_ext_guess_old(2)     ! Guesses for external node positions (inner and outer)
+    double precision, allocatable   :: node_pos_guess(:)                                    ! Resulting node pos guess based on node_pos_ext_guess using node_pos_rel
+    double precision                :: node_pos_ext_result(2), node_pos_ext_result_old(2)   ! Result for external node positions
+    double precision                :: node_pos_ext_update(2)                               ! Update of guess for external node positions
+    
     double precision, allocatable   :: node_disp_old_mesh(:), node_pos_old_mesh(:)
     integer                         :: ntnod_old, nenod_old, nel_old
-    double precision, allocatable   :: node_pos_guess(:), node_pos_result(:)            ! Node positions 
-    double precision, allocatable   :: node_pos_guess_old(:), node_pos_result_old(:)    ! Node positions for better guess
-    double precision, allocatable   :: node_pos_update(:)                               ! Node position update
-    integer, allocatable            :: node_disp_ind(:)                                 ! Indices in dofs belonging to node_pos variables
+    
+   !double precision, allocatable   :: node_pos_guess(:), node_pos_result(:)            ! Node positions
+   !double precision, allocatable   :: node_pos_guess_old(:), node_pos_result_old(:)    ! Node positions for better guess
+   !double precision, allocatable   :: node_pos_update(:)                               ! Node position update
+   !integer, allocatable            :: node_disp_ind(:)                                 ! Indices in dofs belonging to node_pos variables
     integer                         :: k1                                               ! Iteration index
     logical                         :: geom_conv                                        ! Convergence indicator for geometry iterations
     logical                         :: relx_conv                                        ! Convergence indicator for relaxation
@@ -144,15 +151,16 @@ implicit none
     
 
     ! == SETUP NODE POSITION ITERATIONS ==
-    allocate(node_disp_ind(nel+1))
-    ! Index in dof for specified node displacement values
-    node_disp_ind = (/(k1, k1=3,ndof,(nenod-1))/)
-    allocate(node_pos_guess(nel+1), node_pos_result(nel+1))
-    allocate(node_pos_guess_old(nel+1), node_pos_result_old(nel+1))
-    allocate(node_pos_update(nel+1))
+    !allocate(node_disp_ind(nel+1))
+    !! Index in dof for specified node displacement values
+    !node_disp_ind = (/(k1, k1=3,ndof,(nenod-1))/)
+    allocate(node_pos_guess(nel+1), node_pos_rel(nel+1))
     
     ! Guess for undeformed nodal positions
-    node_pos_guess = f_data%sim(simnr)%mesh1d%node_pos  ! Guess for deformed positions, needs to be changed to undeformed:
+    node_pos_guess = f_data%sim(simnr)%mesh1d%node_pos  ! Temporary used as the deformed variables
+    node_pos_rel = (node_pos_guess - minval(node_pos_guess))/(maxval(node_pos_guess) - minval(node_pos_guess))   ! Relative node positions, used to obtain the internal node positions
+    node_pos_ext_guess = f_data%sim(simnr)%mesh1d%node_pos([1, nel+1])
+    
      ! Get dimensions for old mesh
     nenod_old = f_data_initial_relax%sim(1)%mesh1d%element_order + 1
     nel_old = (size(f_data_initial_relax%sim(1)%mesh1d%node_pos) - 1)
@@ -163,7 +171,7 @@ implicit none
     interpolate_failed = .false.    ! Need to reset to avoid remembering old value if it occurred previously
     node_disp_old_mesh = f_data_initial_relax%sim(1)%end_res%u_end(3:(ntnod_old+2):(nenod_old-1))
     node_pos_old_mesh = f_data_initial_relax%sim(1)%mesh1d%node_pos_undef
-    node_pos_update = interpolate(node_pos_old_mesh + node_disp_old_mesh, node_disp_old_mesh, node_pos_guess)
+    node_pos_ext_update = interpolate(node_pos_old_mesh + node_disp_old_mesh, node_disp_old_mesh, node_pos_ext_guess) ! yv = interpolate(x, y, xv)
     
     if (interpolate_failed) then
         call write_output('Interpolation failed on initial guess', 'status', 'atp:element_removal')
@@ -172,8 +180,8 @@ implicit none
     endif
     
      ! Update the guess to be of the undeformed positions
-    node_pos_guess = node_pos_guess - node_pos_update ! Guess for undeformed positions
-    node_pos_result= 0.d0
+    node_pos_ext_guess = node_pos_ext_guess - node_pos_ext_update ! Guess for undeformed positions by subtracting the interpolated displacements
+    node_pos_ext_result= 0.d0   ! To avoid it being undefined
 
     ! == SETUP NECESSARY VARIABLES FOR remesh AND solve_incr == 
     allocate(rpos(nenod, nel))       ! Undeformed nodal positions
@@ -203,12 +211,13 @@ implicit none
 
     new_is_solid = f_data%sim(simnr)%mesh1d%node_pos(1) < (1e-12*f_data%sim(simnr)%mesh1d%node_pos(nel+1))
     if (new_is_solid) then ! Force inner node to be zero
-        node_pos_guess(1) = 0.d0
+        node_pos_ext_guess(1) = 0.d0
     endif
     
     geom_conv = .false.
     
     GEOM_ITER_LOOP: do k1=1,f_data%sim(simnr)%atp_er%geom_iter_max
+        node_pos_guess = node_pos_ext_guess(1) + (node_pos_ext_guess(2) - node_pos_ext_guess(1))*node_pos_rel
         !call remesh_old(node_pos_guess, f_data, f_data_initial_relax, simnr, rpos, h0, gp_stress, gp_strain, gp_F, gp_sv, u0)
         call remesh(node_pos_guess, f_data, f_data_initial_relax, simnr, rpos, h0, gp_stress, gp_strain, gp_F, gp_sv, u0, material, load_info)
         if (interpolate_failed) then
@@ -248,9 +257,9 @@ implicit none
             return
         endif
    
-        node_pos_result = (/rpos(1,:), rpos(size(rpos,1), size(rpos,2))/) + f_data_relax%sim(1)%end_res%u_end(node_disp_ind)
-        pos_error = sqrt(  sum( (node_pos_result-f_data%sim(simnr)%mesh1d%node_pos)**2 &
-                                  /max(1.d-6,f_data%sim(simnr)%mesh1d%node_pos)**2 )  )
+        node_pos_ext_result = [rpos(1,1), rpos(size(rpos,1), size(rpos,2))] + f_data_relax%sim(1)%end_res%u_end([3, ndof])
+        pos_error = sqrt(  sum( (node_pos_ext_result-f_data%sim(simnr)%mesh1d%node_pos([1, nel+1]))**2 &
+                                  /maxval(f_data%sim(simnr)%mesh1d%node_pos)**2 )  )
         geom_error(k1) = pos_error
         
         if (pos_error<f_data%sim(simnr)%atp_er%node_pos_tol) then
@@ -259,21 +268,21 @@ implicit none
             exit GEOM_ITER_LOOP
         elseif (k1==1) then
             ! First iteration - fix point update
-            node_pos_guess_old = node_pos_guess
-            node_pos_result_old = node_pos_result
-            node_pos_guess = node_pos_guess + (f_data%sim(simnr)%mesh1d%node_pos-node_pos_result)
+            node_pos_ext_guess_old = node_pos_ext_guess
+            node_pos_ext_result_old = node_pos_ext_result
+            node_pos_ext_guess = node_pos_ext_guess + (f_data%sim(simnr)%mesh1d%node_pos([1, nel+1]) - node_pos_ext_result)
         else
-            ! Further iteration, secant update?
-            node_pos_update = (f_data%sim(simnr)%mesh1d%node_pos-node_pos_result) &
-                                *(node_pos_guess-node_pos_guess_old) &
-                                /sign(max(abs(node_pos_result-node_pos_result_old),f_data%sim(simnr)%mesh1d%node_pos(nel+1)*1.d-20), node_pos_result-node_pos_result_old)
+            ! Further iteration, secant type update
+            node_pos_ext_update = (f_data%sim(simnr)%mesh1d%node_pos([1,nel+1]) - node_pos_ext_result) &
+                                *(node_pos_ext_guess - node_pos_ext_guess_old) &
+                                /sign(max(abs(node_pos_ext_result-node_pos_ext_result_old),f_data%sim(simnr)%mesh1d%node_pos(nel+1)*1.d-20), node_pos_ext_result-node_pos_ext_result_old)
             
-            node_pos_guess_old = node_pos_guess
-            node_pos_result_old = node_pos_result
-            node_pos_guess = node_pos_guess + node_pos_update
+            node_pos_ext_guess_old = node_pos_ext_guess
+            node_pos_ext_result_old = node_pos_ext_result
+            node_pos_ext_guess = node_pos_ext_guess + node_pos_ext_update
         endif
         if (new_is_solid) then ! Force inner node to be zero
-                node_pos_guess(1) = 0.d0
+                node_pos_ext_guess(1) = 0.d0
         endif
         
     enddo GEOM_ITER_LOOP
