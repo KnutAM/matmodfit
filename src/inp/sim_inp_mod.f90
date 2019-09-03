@@ -25,6 +25,11 @@ implicit none
     allocate(sim_tmp(maxsim))
     
     do while(.not.end_of_category('<opt>'))
+        if (k1>=maxsim) then
+            call close_input()
+            call write_output('Maximum '//int2str(maxsim)//' number of simulations allowed. This can be changed in reading_utilities_mod.f90', 'error', 'inp')
+        endif
+        
         if (adjustl(textline)=='<sim>') then
             k1 = k1 + 1
             call read_int(stype)

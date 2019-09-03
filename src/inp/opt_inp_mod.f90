@@ -24,6 +24,11 @@ subroutine read_optimization_settings(opt)
     allocate(opt_tmp(maxopt))
     
     do while(.not.end_of_category())
+        if (k1>=maxopt) then
+            call close_input()
+            call write_output('Maximum '//int2str(maxopt)//' number of optimization stages allowed. This can be changed in reading_utilities_mod.f90', 'error', 'inp')
+        endif
+        
         if (adjustl(textline)=='<opt>') then
             k1 = k1 + 1
             call read_int(otype)
