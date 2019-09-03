@@ -13,7 +13,7 @@ use iso_c_binding
     ! Main categories
     public glob_typ, sim_typ, opt_typ
     ! Simulation sub-categories
-    public mesh1d_typ, exp_typ, iter_typ, err_typ, outp_typ, init_typ, atp_er_typ, usr_sim_typ
+    public mesh1d_typ, exp_typ, iter_typ, err_typ, outp_typ, init_typ, atp_mr_typ, usr_sim_typ
     ! Optimization sub-categories
     public start_typ, end_cond_typ, usr_opt_typ
     
@@ -160,13 +160,13 @@ use iso_c_binding
         
     end type outp_typ
     
-    ! ATP Element Removal settings
-    type atp_er_typ
-        double precision                :: time_relx = 1.d0     ! Time for relaxation to zero load before element removal
+    ! ATP Material Removal settings
+    type atp_mr_typ
+        double precision                :: time_relx = 1.d0     ! Time for relaxation to zero load before material removal
         double precision                :: time_remesh = 1.d0   ! Time for remesh step (always done in one step, but time affects rate dependent materials)
         integer                         :: geom_iter_max = 5    ! Max number of iterations for finding the correct node positions
         double precision                :: node_pos_tol=1.d-6   ! Tolerance for node positions
-    end type atp_er_typ
+    end type atp_mr_typ
     
     
         ! External user simulation subroutine
@@ -212,7 +212,7 @@ use iso_c_binding
         type(err_typ)                   :: err                  ! Objective function scaling values
         type(init_typ)                  :: init                 ! Initial conditions
         type(outp_typ)                  :: outp                 ! Output settings
-        type(atp_er_typ)                :: atp_er               ! ATP element removal settings
+        type(atp_mr_typ)                :: atp_mr               ! ATP material removal settings
         
         type(sim_setup_typ)             :: sim_setup            ! Data found during the setup_simulation procedure
         type(end_res_typ)               :: end_res              ! Resulting conditions

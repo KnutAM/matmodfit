@@ -3,7 +3,7 @@ module simulation_mod
     use sim_setup_mod
     use atp_mod
     use mps_mod
-    use atp_element_removal_mod
+    use atp_material_removal_mod
     use types_mod
     use convert_mpar_mod
     use output_mod
@@ -80,8 +80,8 @@ subroutine simulate(error, xvar, f_data, evec)
                 call mp_simulate(error_tmp, mpar, f_data, k1)
             endif
         elseif (stype == 11) then
-            ! ATP machine ("element removal") (no error output for this stage)
-            call atp_element_removal(error_tmp, mpar, f_data, k1)
+            ! ATP machine ("material removal") (no error output for this stage)
+            call atp_material_removal(error_tmp, mpar, f_data, k1)
             if (present(evec)) then 
                 allocate(ev_tmp(k1)%evec_tmp(1))
                 ev_tmp(k1)%evec_tmp = 0.d0
@@ -183,7 +183,7 @@ implicit none
             call setup_simulation(f_data, k1) 
         elseif (stype==2) then  ! MPS 
             call setup_simulation(f_data, k1)
-        elseif (stype==11) then ! ATP element removal
+        elseif (stype==11) then ! ATP material removal
             ! No setup
         endif
     enddo

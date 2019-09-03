@@ -37,8 +37,8 @@ implicit none
                 call get_sim_atp(sim_tmp(k1))
             elseif  (stype==2) then !MP-simulation (MPS)
                 call get_sim_mps(sim_tmp(k1))
-            elseif  (stype==11) then !ATP element removal simulation
-                call get_sim_atp_er(sim_tmp(k1))
+            elseif  (stype==11) then !ATP material removal simulation
+                call get_sim_atp_mr(sim_tmp(k1))
             else                    !stype not defined
                 call close_input()
                 call write_output('stype = '//int2str(stype)//' not defined', 'error', 'inp')
@@ -140,7 +140,7 @@ subroutine get_sim_atp(sim)
     
 end subroutine get_sim_atp
     
-subroutine get_sim_atp_er(sim)
+subroutine get_sim_atp_mr(sim)
     implicit none
     
     type(sim_typ)                   :: sim
@@ -166,19 +166,19 @@ subroutine get_sim_atp_er(sim)
             call read_sim_init(sim%init)
         elseif (adjustl(textline)=='<<outp>>') then
             call read_sim_outp(sim%outp)
-        elseif (adjustl(textline)=='<<atp_er>>') then
-            call read_sim_atp_er(sim%atp_er)
+        elseif (adjustl(textline)=='<<atp_mr>>') then
+            call read_sim_atp_mr(sim%atp_mr)
         else
             call write_output('Unknown category "'//trim(textline)//'".', 'warning', 'inp')
             read_next_line = .true.
         endif
     enddo
     
-    ! Check inputs for atp element removal simulation
-    call check_sim_atp_elem_rem(sim)
+    ! Check inputs for atp material removal simulation
+    call check_sim_atp_mr(sim)
     
     
-end subroutine get_sim_atp_er
+end subroutine get_sim_atp_mr
   
 subroutine get_sim_mps(sim)
     implicit none
@@ -398,22 +398,22 @@ implicit none
     enddo
 end subroutine
 
-subroutine read_sim_atp_er(atp_er)
+subroutine read_sim_atp_mr(atp_mr)
 implicit none
-    type(atp_er_typ)   :: atp_er
+    type(atp_mr_typ)   :: atp_mr
     
     do while(status==0)
         call readline()
         if (end_of_subcategory()) then
             exit
         elseif (adjustl(textline)=='*time_relx') then
-            call read_dbl(atp_er%time_relx)
+            call read_dbl(atp_mr%time_relx)
         elseif (adjustl(textline)=='*time_remesh') then
-            call read_dbl(atp_er%time_remesh)
+            call read_dbl(atp_mr%time_remesh)
         elseif (adjustl(textline)=='*geom_iter_max') then
-            call read_int(atp_er%geom_iter_max)
+            call read_int(atp_mr%geom_iter_max)
         elseif (adjustl(textline)=='*node_pos_tol') then
-            call read_dbl(atp_er%node_pos_tol)
+            call read_dbl(atp_mr%node_pos_tol)
         else
             call write_output('Unknown category "'//trim(textline)//'".', 'warning', 'inp')
         endif

@@ -16,7 +16,7 @@ module check_input_mod
     public  :: check_sim_ext        ! Check the simulation settings input for external simulation
     public  :: check_sim_atp        ! Check the simulation settings input for atp simulation
     public  :: check_sim_mps        ! Check the simulation settings input for mp simulation (mps)
-    public  :: check_sim_atp_elem_rem!Check the simulation settings input for atp element removal simulation
+    public  :: check_sim_atp_mr!Check the simulation settings input for atp material removal simulation
     public  :: check_sim_usr        ! Check the settings for user simulation
     
     public  :: check_opt_nlopt      ! Check the optimization settings input for nlopt
@@ -268,7 +268,7 @@ implicit none
 
 end subroutine        
 
-subroutine check_sim_atp_elem_rem(sim)
+subroutine check_sim_atp_mr(sim)
 implicit none
     type(sim_typ)       :: sim
     double precision    :: dummy_ctrl(5,1)
@@ -282,12 +282,12 @@ implicit none
     
     ! 2) Check that input is reasonable
     if (sim%init%cont_analysis==0) then
-        call bad_input('cont_analysis input is mandatory for element removal analysis type. It can not be zero.')
+        call bad_input('cont_analysis input is mandatory for material removal analysis type. It can not be zero.')
     endif
     
     if (.not.allocated(sim%iter%time_incr)) then
         allocate(sim%iter%time_incr(1,5))
-        sim%iter%time_incr(:,1) = (/1.d0, sim%atp_er%time_relx, sim%atp_er%time_relx, sim%atp_er%time_relx, sim%atp_er%time_relx/)
+        sim%iter%time_incr(:,1) = (/1.d0, sim%atp_mr%time_relx, sim%atp_mr%time_relx, sim%atp_mr%time_relx, sim%atp_mr%time_relx/)
     endif
     
     call check_sim_err(sim%err)

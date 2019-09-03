@@ -181,10 +181,11 @@ implicit none
             endif
         endif
         
+        ! This does not work, for some reason nlosr ans nlosrt is not found in nlopt, even though it is exported by the dll file...
         if (opt%start%use_fixed_seed) then
-            call nlosr(opt%start%fixed_seed)    ! Set fixed seed
+            ! call nlosr(opt%start%fixed_seed)    ! Set fixed seed
         else
-            call nlosrt                         ! Set auto-seed based on cpu-time
+            ! call nlosrt                         ! Set auto-seed based on cpu-time
         endif
         
         

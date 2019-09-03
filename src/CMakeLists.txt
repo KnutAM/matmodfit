@@ -96,7 +96,7 @@ target_sources(sim
      "sim/atp/atp_util_mod.f90"
 	 "sim/atp/atp_import_mod.f90"
      "sim/atp/atp_element_mod.f90"
-     "sim/atp/atp_element_removal_mod.f90"
+     "sim/atp/atp_material_removal_mod.f90"
      "sim/mps/mps_mod.f90"
      "sim/mps/mps_util_mod.f90"
      )

@@ -1,5 +1,5 @@
 
-module atp_element_removal_mod
+module atp_material_removal_mod
 use atp_mod
 use types_mod
 use atp_element_mod
@@ -10,7 +10,7 @@ use usr_interface_mod
 use iso_c_binding
 implicit none
     private
-    public  :: atp_element_removal ! Axial-torsion-pressure element removal routine
+    public  :: atp_material_removal ! Axial-torsion-pressure material removal routine
     
     logical :: interpolate_failed = .false.
     integer :: max_num_refinements = 5 
@@ -47,7 +47,7 @@ implicit none
     
     
     contains
-! Element removal procedure
+! material removal procedure
 ! ============================================================================================================
 ! 	1. Import data from continued analysis
 !	2. Solve load = 0.d0 (I.e. relax)
@@ -59,7 +59,7 @@ implicit none
 !	7. Check tolerance on new nodal positions, and if not ok change the guess for node coordinates and go to 3
 
     
-subroutine atp_element_removal(error, props, f_data, simnr)
+subroutine atp_material_removal(error, props, f_data, simnr)
 use atp_util_mod
 use atp_element_mod
 use atp_import_mod
@@ -128,7 +128,7 @@ implicit none
     double precision, allocatable   :: geom_error(:)
     integer                         :: res_fid
     
-    allocate(geom_error(f_data%sim(simnr)%atp_er%geom_iter_max))
+    allocate(geom_error(f_data%sim(simnr)%atp_mr%geom_iter_max))
     
     ! Simulation timing
     call system_clock ( clock_count, clock_rate)
@@ -194,7 +194,7 @@ implicit none
     disp        = 0.d0  ! 
     
     ! These variables are not used, but needed for use with solve_incr
-    time        = f_data%sim(1)%atp_er%time_remesh
+    time        = f_data%sim(1)%atp_mr%time_remesh
     iter_tol    = 1.d0  ! No effect, must be >0 as error is set to zero at material convergence
     niter       = 0     ! Dummy output variable (should always become 1)
     iter_max    = 0     ! No effect since solve_incr converges directly if material converges locally (should be >=1)
@@ -205,7 +205,7 @@ implicit none
     material%umat_address => f_data%glob%umat_address
     material%cmname = f_data%glob%cmname
     allocate(material%props, source=props)
-    load_info%dtime = f_data%sim(simnr)%atp_er%time_remesh
+    load_info%dtime = f_data%sim(simnr)%atp_mr%time_remesh
     load_info%temperature = f_data%sim(simnr)%init%temp_init
     
 
@@ -216,7 +216,7 @@ implicit none
     
     geom_conv = .false.
     
-    GEOM_ITER_LOOP: do k1=1,f_data%sim(simnr)%atp_er%geom_iter_max
+    GEOM_ITER_LOOP: do k1=1,f_data%sim(simnr)%atp_mr%geom_iter_max
         node_pos_guess = node_pos_ext_guess(1) + (node_pos_ext_guess(2) - node_pos_ext_guess(1))*node_pos_rel
         !call remesh_old(node_pos_guess, f_data, f_data_initial_relax, simnr, rpos, h0, gp_stress, gp_strain, gp_F, gp_sv, u0)
         call remesh(node_pos_guess, f_data, f_data_initial_relax, simnr, rpos, h0, gp_stress, gp_strain, gp_F, gp_sv, u0, material, load_info)
@@ -232,13 +232,13 @@ implicit none
         ! Solve zero external displacement increment
         call element_setup(ngp, nenod, .false., -simnr)
         call gen_free_dofs(free_dofs, known_dofs, ndof, [1,1,1,1], .false.)
-        call solve_incr(rpos, h0, load, disp, f_data%sim(simnr)%init%temp_init, 0.d0, time, f_data%sim(simnr)%atp_er%time_remesh, free_dofs, &
+        call solve_incr(rpos, h0, load, disp, f_data%sim(simnr)%init%temp_init, 0.d0, time, f_data%sim(simnr)%atp_mr%time_remesh, free_dofs, &
                known_dofs, gp_F, gp_stress, gp_sv, gp_strain, u0, du, f_data%sim(1)%iter, niter, lconv, pnewdt, &
                k1, -simnr, props, f_data%glob%cmname, f_data%glob%umat_address, f_data%glob%nlgeom, iter_err_norm)
         
         deallocate(free_dofs, known_dofs)
         if (.not.lconv) then
-           call write_output('No convergence for for internal relaxation after element removal', 'status', 'sim:atp')
+           call write_output('No convergence for for internal relaxation after material removal', 'status', 'sim:atp')
            exit GEOM_ITER_LOOP
         endif
    
@@ -262,7 +262,7 @@ implicit none
                                   /maxval(f_data%sim(simnr)%mesh1d%node_pos)**2 )  )
         geom_error(k1) = pos_error
         
-        if (pos_error<f_data%sim(simnr)%atp_er%node_pos_tol) then
+        if (pos_error<f_data%sim(simnr)%atp_mr%node_pos_tol) then
             geom_conv = .true.
             error = 0.d0
             exit GEOM_ITER_LOOP
@@ -296,7 +296,7 @@ implicit none
     
     if (.not.geom_conv) then
         if (lconv) then
-            call write_output('No convergence for geometry update due to element removal, error=huge', 'status', 'sim:atp')
+            call write_output('No convergence for geometry update due to material removal, error=huge', 'status', 'sim:atp')
         endif
         
         error = huge(1.d0)
@@ -307,10 +307,10 @@ implicit none
     call system_clock ( clock_count, clock_rate)
     stoptime = real(clock_count)/real(clock_rate)
 
-end subroutine atp_element_removal
+end subroutine atp_material_removal
 
 subroutine atp_relax(converged, props, f_data, simnr_new, simnr_old, f_data_relax, append_result_name, rpos, h0)
-! Solve relaxing before element removal by setting up another simulation
+! Solve relaxing before material removal by setting up another simulation
 implicit none
     logical, intent(out)            :: converged
     double precision, intent(in)    :: props(:)
@@ -323,7 +323,7 @@ implicit none
     double precision                :: error
     
     ! Setup the f_data for the relax simulation
-    ! 1) Read in the data from the old analysis (prior to element removal)
+    ! 1) Read in the data from the old analysis (prior to material removal)
     allocate(f_data_relax%sim(1))
     !If this allocates the sub-arrays depends on compiler options, hence we should always check if they are allocated...
     f_data_relax%glob = f_data%glob 
@@ -348,7 +348,7 @@ implicit none
     allocate(f_data_relax%sim(1)%sim_setup%expdata_array(2,5))
     f_data_relax%sim(1)%sim_setup%expdata_array(1,2:) = 1.d0  ! Initial load (will not be used as ctrl is set to -3)
     f_data_relax%sim(1)%sim_setup%expdata_array(2,2:) = 0.d0  ! Final load
-    f_data_relax%sim(1)%sim_setup%expdata_array(:,1) = (/0.d0, f_data%sim(simnr_new)%atp_er%time_relx/)
+    f_data_relax%sim(1)%sim_setup%expdata_array(:,1) = (/0.d0, f_data%sim(simnr_new)%atp_mr%time_relx/)
     
     if (allocated(f_data_relax%sim(1)%sim_setup%stprows)) then
         deallocate(f_data_relax%sim(1)%sim_setup%stprows)
@@ -729,15 +729,15 @@ implicit none
     allocate(yv(num_out_points))
     
     if (xv(1)<x(1)-numtol) then
-        call write_output('Interpolation failed, x(1) must be <= xv(1)', 'status', 'sim:atp_element_removal')
-        call write_output('x(1)='//dbl2str(x(1))//', xv(1)='//dbl2str(xv(1)), 'status', 'sim:atp_element_removal', loc=.false.)
+        call write_output('Interpolation failed, x(1) must be <= xv(1)', 'status', 'sim:atp_material_removal')
+        call write_output('x(1)='//dbl2str(x(1))//', xv(1)='//dbl2str(xv(1)), 'status', 'sim:atp_material_removal', loc=.false.)
         interpolate_failed = .true.
         return
     endif
     
     if (xv(num_out_points)>x(num_base_points)+numtol) then
-        call write_output('Interpolation failed, x(end) must be >= xv(end)', 'status', 'sim:atp_element_removal')
-        call write_output('x(end)='//dbl2str(x(num_base_points))//', xv(end)='//dbl2str(xv(num_out_points)), 'status', 'sim:atp_element_removal', loc=.false.)
+        call write_output('Interpolation failed, x(end) must be >= xv(end)', 'status', 'sim:atp_material_removal')
+        call write_output('x(end)='//dbl2str(x(num_base_points))//', xv(end)='//dbl2str(xv(num_out_points)), 'status', 'sim:atp_material_removal', loc=.false.)
         interpolate_failed = .true.
         return
     endif
