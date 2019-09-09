@@ -13,7 +13,9 @@
 0   ! External script
 <<ext_cmd>>
  *script
-python elastic_sim.py
+python elastic_sim.py "This is an example of additional input to the script"
+ *logfile
+external.log
 
 <opt>
 1   !nlopt type
@@ -26,5 +28,5 @@ NLOPT_LN_NELDERMEAD
 ! Stopping criteria
  *maxeval   ! Maximum number of function evaluations
 100
- *xtol_abs
-1e-8
+ *xtol_rel
+1e-4

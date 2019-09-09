@@ -4,16 +4,26 @@ import sys
 E = 211e3
 nu= 0.33
 
+
+example = sys.argv[1] # To show that additional inputs can be given via input file
+
+n = 1   # Number of additional inputs
+
 # Check input options
-if (sys.argv[1]=='1'):
+if (sys.argv[n+1]=='1'):
     evec_out = True
 else:
     evec_out = False
 
+# Result number (if different output files should be generated to avoid overwriting)
+resnr = int(sys.argv[n+2])
+
 # Save file names
-mpar_file = sys.argv[2]
-error_file= sys.argv[3]
-evec_file = sys.argv[4]
+mpar_file = sys.argv[n+3]
+error_file= sys.argv[n+4]
+evec_file = sys.argv[n+5]
+
+print(example)
 
 # Read in material parameters
 mpar_fid = open(mpar_file, 'r')
