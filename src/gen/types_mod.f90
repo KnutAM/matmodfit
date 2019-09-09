@@ -163,10 +163,12 @@ use iso_c_binding
     
     ! ATP Material Removal settings
     type atp_mr_typ
-        double precision                :: time_relx = 1.d0     ! Time for relaxation to zero load before material removal
-        double precision                :: time_remesh = 1.d0   ! Time for remesh step (always done in one step, but time affects rate dependent materials)
-        integer                         :: geom_iter_max = 5    ! Max number of iterations for finding the correct node positions
-        double precision                :: node_pos_tol=1.d-6   ! Tolerance for node positions
+        double precision                :: time_relx = 1.d0         ! Time for relaxation to zero load before material removal
+        double precision                :: time_remesh = 1.d0       ! Time for remesh step (always done in one step, but time affects rate dependent materials)
+        integer                         :: geom_iter_max = 5        ! Max number of iterations for finding the correct node positions
+        double precision                :: node_pos_tol=1.d-6       ! Tolerance for node positions
+        integer                         :: max_num_refinements=5    ! Maximum number of refinements per depth
+        integer                         :: max_recursion_depth=10   ! Maximum times the recursive subroutine is called (technically not recursion depth)
     end type atp_mr_typ
     
     

@@ -422,6 +422,10 @@ implicit none
             call read_int(atp_mr%geom_iter_max)
         elseif (adjustl(textline)=='*node_pos_tol') then
             call read_dbl(atp_mr%node_pos_tol)
+        elseif (adjustl(textline)=='*max_num_refinements') then
+            call read_int(atp_mr%max_num_refinements)
+        elseif (adjustl(textline)=='*max_recursion_depth') then
+            call read_int(atp_mr%max_recursion_depth)
         else
             call write_output('Unknown category "'//trim(textline)//'".', 'warning', 'inp')
         endif

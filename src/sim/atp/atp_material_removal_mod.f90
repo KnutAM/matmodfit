@@ -13,8 +13,8 @@ implicit none
     public  :: atp_material_removal ! Axial-torsion-pressure material removal routine
     
     logical :: interpolate_failed = .false.
-    integer :: max_num_refinements = 5 
-    integer :: max_recursion_depth = 10 ! Each time a refinement occurs, 2 recursion depths are counted
+    integer :: max_num_refinements 
+    integer :: max_recursion_depth
     
     type gp_typ
         double precision                :: pos                  ! Radial (undeformed) position of gauss point
@@ -133,6 +133,10 @@ implicit none
     ! Simulation timing
     call system_clock ( clock_count, clock_rate)
     starttime = real(clock_count)/real(clock_rate)
+    
+    ! Setup options
+    max_num_refinements =  f_data%sim(simnr)%atp_mr%max_num_refinements
+    max_recursion_depth =  f_data%sim(simnr)%atp_mr%max_recursion_depth
 
     ! Convenience size variables
     nel = size(f_data%sim(simnr)%mesh1d%node_pos)-1
