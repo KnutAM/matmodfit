@@ -1,6 +1,7 @@
 # user optimization example for matmodfit
 
-## How to build this example
+## How to build this example without CMake
+
 ### Windows: 
 Create empty Visual Studio dll project named uopt_example, add source file uopt.f90. 
 Ensure that 64-bit architecture is chosen and build
