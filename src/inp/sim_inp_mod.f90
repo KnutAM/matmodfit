@@ -69,6 +69,8 @@ subroutine get_sim_ext(sim, simnr)
             exit
         elseif (adjustl(textline)=='*script') then
             call read_str(sim%ext_cmd%script, strl)
+        elseif (adjustl(textline)=='*logfile') then
+            call read_str(sim%ext_cmd%logfile, strl)
         elseif (adjustl(textline)=='<<ext_cmd>>') then
             ! Do nothing, as we currently only read one category there is no need to add another subprocedure...
             ! This just allows the default structure with the category

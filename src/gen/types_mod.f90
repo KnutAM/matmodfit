@@ -63,7 +63,8 @@ use iso_c_binding
     ! == Simulation settings ==
     ! External command
     type ext_cmd_typ
-        character(len=strl)             :: script=''
+        character(len=strl)             :: script=''            ! Script which defines the external command
+        character(len=strl)             :: logfile=''           ! Logfile to append stdout and stderr to if output results requested. No output if no file specified. 
     end type ext_cmd_typ
     
     ! Mesh settings
