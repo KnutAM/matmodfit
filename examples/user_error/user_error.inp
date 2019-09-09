@@ -17,9 +17,15 @@ chaboche
 
 <sim>
 1
+
+<<outp>>
+*result_inclexp
+T
+
 <<mesh1d>>
  *node_pos
 0, 4.898979486
+
 <<exp>>
  *ctrl  !(Step, Axial, Rotation, Inside, Outside)
 1! Number of steps for which ctrl is defined
@@ -28,12 +34,17 @@ chaboche
 user_error_expdata.txt
  *exp_info !(step, time, axial force, axial strain, torque, torsional rotation, internal pressure, inner circumferential strain, external pressure, outer circumferential strain, temperature)
 0, 1, 2, 3, 0, 0, 0, 0, 0, 0, 0
+
 <<iter>>
  *time_incr
 1  ! How many steps the increment settings are specified for
 1, 1e-2
+
 <<err>>
-*error_lib
+ *error_lib
 uerror_example
-*user_settings
-0, 1, 0, 0, 0
+ *user_settings
+1
+ *err_scale
+1
+1, 1, 0, 0, 0
