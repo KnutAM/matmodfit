@@ -35,15 +35,15 @@ implicit none
             call read_int(stype)
             sim_tmp(k1)%stype = stype
             if      (stype==0) then !External script input
-                call get_sim_ext(sim_tmp(k1))
+                call get_sim_ext(sim_tmp(k1), k1)
             elseif (stype==-1) then !User simulation
-                call get_sim_usr(sim_tmp(k1)%usr_sim)
+                call get_sim_usr(sim_tmp(k1)%usr_sim, k1)
             elseif  (stype==1) then !ATP-simulation
-                call get_sim_atp(sim_tmp(k1))
+                call get_sim_atp(sim_tmp(k1), k1)
             elseif  (stype==2) then !MP-simulation (MPS)
-                call get_sim_mps(sim_tmp(k1))
+                call get_sim_mps(sim_tmp(k1), k1)
             elseif  (stype==11) then !ATP material removal simulation
-                call get_sim_atp_mr(sim_tmp(k1))
+                call get_sim_atp_mr(sim_tmp(k1), k1)
             else                    !stype not defined
                 call close_input()
                 call write_output('stype = '//int2str(stype)//' not defined', 'error', 'inp')
@@ -58,9 +58,9 @@ implicit none
     
 end subroutine read_simulation_settings
 
-subroutine get_sim_ext(sim)
+subroutine get_sim_ext(sim, simnr)
     implicit none
-    
+    integer         :: simnr
     type(sim_typ)   :: sim
     
     do while(status==0)
@@ -78,13 +78,14 @@ subroutine get_sim_ext(sim)
     enddo
     
     ! Check input for external simulation
-    call check_sim_ext(sim)
+    call check_sim_ext(sim, simnr)
     
 end subroutine get_sim_ext
 
-subroutine get_sim_usr(usr_sim)
+subroutine get_sim_usr(usr_sim, simnr)
     implicit none
     type(usr_sim_typ), intent(inout)        :: usr_sim
+    integer         :: simnr
     
     do while(status==0)
         call readline()
@@ -104,13 +105,13 @@ subroutine get_sim_usr(usr_sim)
     enddo
     
     ! Check input for external simulation
-    call check_sim_usr(usr_sim)
+    call check_sim_usr(usr_sim, simnr)
     
 end subroutine get_sim_usr
 
-subroutine get_sim_atp(sim)
+subroutine get_sim_atp(sim, simnr)
     implicit none
-    
+    integer         :: simnr
     type(sim_typ)                   :: sim
     logical                         :: read_next_line
 
@@ -141,13 +142,13 @@ subroutine get_sim_atp(sim)
     enddo
     
     ! Check inputs for atp simulation
-    call check_sim_atp(sim) 
+    call check_sim_atp(sim, simnr) 
     
 end subroutine get_sim_atp
     
-subroutine get_sim_atp_mr(sim)
+subroutine get_sim_atp_mr(sim, simnr)
     implicit none
-    
+    integer         :: simnr
     type(sim_typ)                   :: sim
     logical                         :: read_next_line
 
@@ -180,14 +181,14 @@ subroutine get_sim_atp_mr(sim)
     enddo
     
     ! Check inputs for atp material removal simulation
-    call check_sim_atp_mr(sim)
+    call check_sim_atp_mr(sim, simnr)
     
     
 end subroutine get_sim_atp_mr
   
-subroutine get_sim_mps(sim)
+subroutine get_sim_mps(sim, simnr)
     implicit none
-    
+    integer         :: simnr
     type(sim_typ)   :: sim
     logical         :: read_next_line
     
@@ -216,7 +217,7 @@ subroutine get_sim_mps(sim)
     enddo
     
     ! Check inputs for mp-simulation
-    call check_sim_mps(sim)
+    call check_sim_mps(sim, simnr)
     
 end subroutine get_sim_mps
   

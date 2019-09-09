@@ -224,12 +224,12 @@ implicit none
     
 end subroutine
 
-subroutine check_sim_usr(usr_sim)
+subroutine check_sim_usr(usr_sim, simnr)
 implicit none
     type(usr_sim_typ)   :: usr_sim
-    
+    integer         :: simnr
     if (usr_sim%lib=='') then
-        call bad_input('A user library path name (*lib) must be specified when running user simulation')
+        call bad_input('A user library path name (*lib) must be specified when running user simulation. (sim nr. '//int2str(simnr)//')')
     endif
     
     if (.not.allocated(usr_sim%user_data)) then
@@ -240,22 +240,23 @@ implicit none
 end subroutine
 
 
-subroutine check_sim_ext(sim)
+subroutine check_sim_ext(sim, simnr)
 implicit none
     type(sim_typ)   :: sim
-
+    integer         :: simnr
     if (sim%ext_cmd%script=='') then
-        call bad_input('A script command is required when using external simulation')
+        call bad_input('A script command is required when using external simulation. (sim nr. '//int2str(simnr)//')')
     endif
     
 end subroutine
 
-subroutine check_sim_atp(sim)
+subroutine check_sim_atp(sim, simnr)
 implicit none
-    type(sim_typ)       :: sim
-    
+    type(sim_typ)   :: sim
+    integer         :: simnr
     nchannels = 4
-
+    call check_sim_init(sim%init, simnr)
+    
     call check_sim_exp(sim%exp)
     
     call check_sim_mesh1d(sim%mesh1d, sim%exp%ctrl, continued_analysis=sim%init%cont_analysis.ne.0)
@@ -268,9 +269,10 @@ implicit none
 
 end subroutine        
 
-subroutine check_sim_atp_mr(sim)
+subroutine check_sim_atp_mr(sim, simnr)
 implicit none
     type(sim_typ)       :: sim
+    integer             :: simnr
     double precision    :: dummy_ctrl(5,1)
     
     nchannels = 4
@@ -301,9 +303,10 @@ implicit none
     
 end subroutine
 
-subroutine check_sim_mps(sim)
+subroutine check_sim_mps(sim, simnr)
 implicit none
 type(sim_typ)   :: sim
+integer         :: simnr
     
     if (nlgeom) then
         nchannels = 9
@@ -331,6 +334,16 @@ type(sim_typ)   :: sim
     
 end subroutine
 
+subroutine check_sim_init(init, simnr)
+implicit none
+    type(init_typ)  :: init
+    integer         :: simnr
+    
+    if (abs(init%cont_analysis)>=simnr) then
+        call bad_input('continued analysis must be from an analysis defined before itself')
+    endif
+    
+end subroutine check_sim_init
 
 subroutine check_sim_exp(exp)
 implicit none
