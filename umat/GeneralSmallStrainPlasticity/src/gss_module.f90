@@ -8,15 +8,16 @@ implicit none
     double precision, parameter :: p23 = 2.d0/3.d0
     double precision, parameter :: m13 = -1.d0/3.d0
     double precision, parameter :: p12 = 1.d0/2.d0
-    double precision, parameter, dimension(6):: Z6 = (/0.d0,0.d0,0.d0,0.d0,0.d0,0.d0/)
-    double precision, parameter, dimension(6):: I2 = (/1.d0,1.d0,1.d0,0.d0,0.d0,0.d0/)
-    double precision, parameter, dimension(6,6):: IoI = (/I2,I2,I2,Z6,Z6,Z6/)
-    double precision, parameter, dimension(6,6):: I4dev = (/(/ p23, m13, m13,0.0d0,0.0d0,0.0d0/),&
-                                                            (/ m13, p23, m13,0.0d0,0.0d0,0.0d0/),&
-                                                            (/ m13, m13, p23,0.0d0,0.0d0,0.0d0/),&
-                                                            (/0.d0,0.d0,0.d0,0.5d0,0.0d0,0.0d0/),&
-                                                            (/0.d0,0.d0,0.d0,0.0d0,0.5d0,0.0d0/),&
-                                                            (/0.d0,0.d0,0.d0,0.0d0,0.0d0,0.5d0/)/)
+    double precision, parameter, dimension(6):: Z6 = [0.d0,0.d0,0.d0,0.d0,0.d0,0.d0]
+    double precision, parameter, dimension(6):: I2 = [1.d0,1.d0,1.d0,0.d0,0.d0,0.d0]
+    double precision, parameter, dimension(6,6):: IoI = reshape([I2,I2,I2,Z6,Z6,Z6], [6,6])
+    double precision, parameter, dimension(6,6):: I4dev = reshape([ p23, m13, m13, 0.0d0,0.0d0,0.0d0 ,&
+                                                                    m13, p23, m13, 0.0d0,0.0d0,0.0d0 ,&
+                                                                    m13, m13, p23, 0.0d0,0.0d0,0.0d0 ,&
+                                                                    0.d0,0.d0,0.d0,0.5d0,0.0d0,0.0d0 ,&
+                                                                    0.d0,0.d0,0.d0,0.0d0,0.5d0,0.0d0 ,&
+                                                                    0.d0,0.d0,0.d0,0.0d0,0.0d0,0.5d0 ], &
+                                                                  [6,6])
     
     contains
     
