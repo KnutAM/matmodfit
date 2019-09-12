@@ -153,8 +153,8 @@ implicit none
     double precision, intent(out)           :: error                    ! Calculated error
     double precision, allocatable, optional :: evec(:)                  ! Error vector
     
-    double precision                        :: step, error_scale_factor, ch_ind
-    integer                                 :: k1, k2, thisind, nextind, tempind, num_channels
+    double precision                        :: step, error_scale_factor
+    integer                                 :: k1, k2, thisind, nextind, tempind, num_channels, ch_ind
     double precision, allocatable           :: scaling(:), stp_err_scale(:), stp_err_scale_ctrl(:)
     integer, allocatable                    :: stp_ctrl(:)
     
