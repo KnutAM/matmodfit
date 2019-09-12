@@ -7,7 +7,7 @@ program matmodfit
     use simulation_mod
     implicit none
 
-    character(len=80), parameter    :: version_string = 'matmodfit version 1.0'
+    character(len=80), parameter    :: version_string = 'matmodfit version 1.1'
     type(fdata_typ)                 :: f_data
     type(opt_typ), allocatable      :: opt(:)
     character(len=80)               :: inputfile

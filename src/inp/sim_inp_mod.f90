@@ -325,6 +325,8 @@ implicit none
             call read_int(err%err_norm_met)
         elseif (adjustl(textline)=='*err_scale') then
             call read_dbl_mvector(err%err_scale)
+        elseif (adjustl(textline)=='*err_scale_ctrl') then
+            call read_dbl_mvector(err%err_scale_ctrl)
         elseif (adjustl(textline)=='*error_lib') then
             call read_str(err%error_lib, strl)
             call load_user_error(err%error_lib, err%error_address)
