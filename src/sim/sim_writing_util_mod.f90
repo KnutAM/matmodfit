@@ -79,28 +79,30 @@ subroutine write_result(step, incr, niter, time, temp, load, load_exp, disp, dis
     write(fid_res, dbl_format, advance="no") temp
     
     !Write gauss point output
-    do k1=1,size(outp%output_elems)
-        iel = outp%output_elems(k1)
-        do igp=1,size(gp_statev,2)
-            ! Stress output
-            if (outp%stress.and.present(gp_stress)) then
-                call write_gp_output(igp, iel, gp_stress, outp%stress_comp)
-            endif
-            ! Strain output
-            if (outp%strain.and.present(gp_strain)) then
-                call write_gp_output(igp, iel, gp_strain, outp%strain_comp)
-            endif
-            ! Deformation gradient output
-            if (outp%dfgrd.and.present(gp_dfgrd)) then
-                call write_gp_output(igp, iel, gp_dfgrd, outp%dfgrd_comp)
-            endif
-            ! State variable output
-            if (outp%statev) then
-                call write_gp_output(igp, iel, gp_statev, outp%statev_comp)
-            endif
+    if (allocated(outp%output_elems)) then
+        do k1=1,size(outp%output_elems)
+            iel = outp%output_elems(k1)
+            do igp=1,size(gp_statev,2)
+                ! Stress output
+                if (outp%stress.and.present(gp_stress)) then
+                    call write_gp_output(igp, iel, gp_stress, outp%stress_comp)
+                endif
+                ! Strain output
+                if (outp%strain.and.present(gp_strain)) then
+                    call write_gp_output(igp, iel, gp_strain, outp%strain_comp)
+                endif
+                ! Deformation gradient output
+                if (outp%dfgrd.and.present(gp_dfgrd)) then
+                    call write_gp_output(igp, iel, gp_dfgrd, outp%dfgrd_comp)
+                endif
+                ! State variable output
+                if (outp%statev) then
+                    call write_gp_output(igp, iel, gp_statev, outp%statev_comp)
+                endif
+            enddo
         enddo
-    enddo
-    
+    endif
+
     ! Write nodal values
     if (outp%ur.and.present(ur)) then
         do k1=1,size(outp%output_nodes)
@@ -168,11 +170,13 @@ implicit none
     endif
     
     ! State variable header
-    allocate(statev_str(size(outp%statev_comp)))
-    do k1=1,size(outp%statev_comp)
-        statev_str(k1) = 'sv'//int2str(outp%statev_comp(k1))
-    enddo
-    
+    if (outp%statev) then
+        allocate(statev_str(size(outp%statev_comp)))
+        do k1=1,size(outp%statev_comp)
+            statev_str(k1) = 'sv'//int2str(outp%statev_comp(k1))
+        enddo
+    endif
+
     if (any(stype==[1,11])) then    ! ATP type simulation
         allocate(disp_str(4), load_str(4))
         disp_str = (/"eps_z ", "phi   ", "eps_ci", "eps_co"/)
@@ -187,10 +191,8 @@ implicit none
         endif
         
     endif
-    
         
     write(fid_res, "(A1)", advance="no") "%"    !Write comment sign to facilitate reading result into matlab if desired
-    
     col = 1
     !Write step number
     write(fid_res, "(A8)", advance="no") stp_str//'('//int2str(col)//')'
@@ -207,8 +209,7 @@ implicit none
     !Write time
     write(fid_res, dblhead_str_format, advance="no") tim_str//'('//int2str(col)//')'
     col = col + 1
-    
-    
+
     !Write channels (Axial, Torsional, Inner, Outer)
     do k1=1,size(load_str)
         ! Load
@@ -226,42 +227,41 @@ implicit none
             col = col + 1
         endif
     enddo
-    
     !Write temperature
     write(fid_res, dblhead_str_format, advance="no") temp_str//'('//int2str(col)//')'
     col = col + 1
-    
     ! Write additional variables' headers (if requested)
     !Write gauss point output
-    do k1=1,size(outp%output_elems)
-        iel = outp%output_elems(k1)
-        do igp=1,ngp
-            ! Stress output
-            if (outp%stress) then
-                call write_gp_output_header(igp, iel, stress_str, outp%stress_comp, col, stype, dblhead_str_format)
-            endif
-            ! Strain output
-            if (outp%strain) then
-                call write_gp_output_header(igp, iel, strain_str, outp%strain_comp, col, stype, dblhead_str_format)
-            endif
-            ! Deformation gradient output
-            if (outp%dfgrd) then
-                call write_gp_output_header(igp, iel, dfgrd_str, outp%dfgrd_comp, col, stype, dblhead_str_format)
-            endif
-            ! State variable output
-            if (outp%statev) then
-                call write_gp_output_header(igp, iel, statev_str, outp%statev_comp, col, stype, dblhead_str_format)
-            endif
+    if (allocated(outp%output_elems)) then
+        do k1=1,size(outp%output_elems)
+            iel = outp%output_elems(k1)
+            do igp=1,ngp
+                ! Stress output
+                if (outp%stress) then
+                    call write_gp_output_header(igp, iel, stress_str, outp%stress_comp, col, stype, dblhead_str_format)
+                endif
+                ! Strain output
+                if (outp%strain) then
+                    call write_gp_output_header(igp, iel, strain_str, outp%strain_comp, col, stype, dblhead_str_format)
+                endif
+                ! Deformation gradient output
+                if (outp%dfgrd) then
+                    call write_gp_output_header(igp, iel, dfgrd_str, outp%dfgrd_comp, col, stype, dblhead_str_format)
+                endif
+                ! State variable output
+                if (outp%statev) then
+                    call write_gp_output_header(igp, iel, statev_str, outp%statev_comp, col, stype, dblhead_str_format)
+                endif
+            enddo
         enddo
-    enddo
-    
+    endif
+
     ! Write nodal values
     if (outp%ur) then
         do k1=1,size(outp%output_nodes)
             write(fid_res, dblhead_str_format, advance="no") 'ur'//int2str(outp%output_nodes(k1))
         enddo
     endif
-    
     !Write linebreak
     write(fid_res, "(A)") ''
     
