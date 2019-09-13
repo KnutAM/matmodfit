@@ -2,7 +2,7 @@
 material model fitting program
 
 ## Download with git
-"git clone git@github.com:KnutAM/matmodfit.git"
+"git clone https://github.com/KnutAM/matmodfit.git"
 
 ## Language version and compiler support
 The Fortran 2008 standard is used
