@@ -29,13 +29,32 @@ fi;
 # Try to set the MKLROOT environment variable if not set,
 # by running intel's mklvars.sh script
 if [ -z "$MKLROOT" ]; then
-	mklvars=$(find /opt/intel/* -name mklvars.sh)
+    mklvars=$(find /opt/intel/* -name mklvars.sh)
+    if [ -z "$mklvars" ]
+    then
+        mklvars=$(find $HOME/intel/* -name mklvars.sh)
+    fi
+    if [ -z "$mklvars" ]
+    then
+        echo "Cannot detect that mkl is installed, please give the path to the ''intel/'' folder containing the mkl libraries"
+        echo "E.g. /opt/intel/"
+        read user_intel_dir
+        mklvars=$(find $user_intel_dir -name mklvars.sh)
+    fi
+    if [ -z "$mklvars" ]
+    then
+        echo "Still could not detect mkl in the specified folder, the installation will fail. Please verify that mklvars.sh is located in some subfolder of the specified intel folder"
+        echo "Press enter to quit"
+        read 
+        return 1
+    fi
 	source $mklvars intel64
+    echo "MKL found"
 	export MKLROOT="$MKLROOT"
 fi;
 
 
-# Modify the ~/.[bash_]profile file to contain the necessary environmental variables
+# Modify the $HOME/.[bash_]profile file to contain the necessary environmental variables
 START_STRING="#Automatically added matmodfit directories"
 LD_STRING='export LD_LIBRARY_PATH="$LD_LIBRARY_PATH":'"$installdir"
 PATH_STRING='export PATH="$PATH":'"$installdir"
@@ -44,10 +63,10 @@ END_STRING="#End of matmodfit directories"
 # We need to check if .bash_profile exists. If it does, it will override content of .profile
 # We should therefore not create it if it doesn't exist.
 path_file="noadd"
-if [ -f ~/.bash_profile ]; then
-    path_file="~/.bash_profile"
+if [ -f $HOME/.bash_profile ]; then
+    path_file="$HOME/.bash_profile"
 else
-    path_file="~/.profile"
+    path_file="$HOME/.profile"
 fi;
 
 echo "Do you want to add path entries to the $path_file file? (yes/no)"
@@ -100,6 +119,8 @@ echo "material models have been built, building examples"
 python bld_examples.py $installdir $compiler
 
 echo "Verification of installation"
+PATH=$PATH:$installdir
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$installdir
 matmodfit --version
 
 
