@@ -24,11 +24,14 @@ subroutine get_step_data_dbl(stp_var, glob_var, stpnr)
     double precision, intent(in)    :: glob_var(:,:)
     double precision, intent(in)    :: stpnr
     integer                         :: k1
+    
+    k1 = size(glob_var,2)
 
-    do k1 = size(glob_var, 2),1,-1
+    do while (k1 > 1)
         if (stpnr>(glob_var(1,k1)-1.d-10)) then
             exit
         endif
+        k1 = k1 - 1
     enddo
     
     stp_var = glob_var(2:size(glob_var, 1),k1)
@@ -42,10 +45,13 @@ subroutine get_step_data_int(stp_var, glob_var, stpnr)
     double precision, intent(in)    :: stpnr
     integer                         :: k1
 
-    do k1 = size(glob_var, 2),1,-1
+    k1 = size(glob_var,2)
+
+    do while (k1 > 1)
         if (stpnr>(glob_var(1,k1)-1.d-10)) then
             exit
         endif
+        k1 = k1 - 1
     enddo
     
     stp_var = nint(glob_var(2:size(glob_var, 1),k1))
