@@ -62,9 +62,12 @@ END_STRING="#End of matmodfit directories"
 
 # We need to check if .bash_profile exists. If it does, it will override content of .profile
 # We should therefore not create it if it doesn't exist.
+# Using the bashrc should also work fine, and is therefore favoured over .profile if .bashrc exists
 path_file="noadd"
 if [ -f $HOME/.bash_profile ]; then
     path_file="$HOME/.bash_profile"
+elif [ -f $HOME/.bashrc ]; then
+    path_file="$HOME/.bashrc"
 else
     path_file="$HOME/.profile"
 fi;
