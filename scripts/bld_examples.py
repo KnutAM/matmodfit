@@ -37,6 +37,11 @@ def main(input_args):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     
+    # Build user error example
+    example_dir = '../examples/user_error/'
+    output_name = 'uerror_example'
+    bld_example(cmake_setup, dll_suffix, dll_location, example_dir, output_dir, output_name)
+    
     # Build user simulation example
     example_dir = '../examples/user_simulation/'
     output_name = 'usim_example'
