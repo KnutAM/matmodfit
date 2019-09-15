@@ -68,3 +68,5 @@ NLOPT_LN_BOBYQA
 <<end_cond>> ! Stopping criteria
  *maxeval   ! Maximum number of function evaluations
 600
+ *ftol_rel
+1e-6
