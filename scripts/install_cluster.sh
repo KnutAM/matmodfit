@@ -35,5 +35,5 @@ rm replies.txt # Remove the replies.txt file to avoid clutter
 echo "Running test cases"
 cd ../testing
 python run_test_cases.py
-python clean_test_cases.py
+python clean_test.py
 
