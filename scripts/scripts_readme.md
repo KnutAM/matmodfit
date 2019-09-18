@@ -10,9 +10,16 @@ Will ask the user for:
 It first builds the main program before building the included material models and example user libraries. 
 It uses bld_examples.py and bld_umats.py, hence python is required. 
 
+## install_on_cluster.sh
+Install matmodfit and nlopt in a cluster environment, fully automatic. 
+Will download and install nlopt in the same parent directory of the matmodfit git project. 
+It will then call install_matmodfit.sh, with standard options (ifort, default directory, add to path)
+Finally, test cases will be run to verify that all is good.
+Note: This has only been tested on c3se clusters (Chalmers)
+
 ## install_matmodfit.vbs
 Copying of files on Windows. Must be put in the same folder as the compiled matmodfit.exe program and the other dll's. 
-Will put generate a start menu shortcut to the matmodfit.bat script that starts a cmd with the folder containing install_matmodfit.vbs in path. 
+Will generate a start menu shortcut to the matmodfit.bat script that starts a cmd with the folder containing install_matmodfit.vbs in path. 
 Will also copy the manual to the start menu.
 
 ## bld_examples.py and bld_umats.py
