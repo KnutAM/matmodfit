@@ -83,7 +83,12 @@ rm -r build
 mkdir build  # Create a build folder
 cd build
 
-FC=$compiler cmake -D nlopt_lib=$nlopt_path ../src
+if [ -z "$nlopt_path" ]; then
+    FC=$compiler cmake ../src
+else
+    FC=$compiler cmake -D nlopt_lib=$nlopt_path ../src
+fi;
+
 if [ $? -ne 0 ]; then
     echo "Could not setup build environment, check that nlopt and mkl was found"
     echo "If in a cluster environment you must load the required modules for mkl"
