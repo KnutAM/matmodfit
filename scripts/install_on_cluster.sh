@@ -32,8 +32,12 @@ echo "yes" >> replies.txt   # add paths to .bash_profile/.bashrc/.profile files
 
 rm replies.txt # Remove the replies.txt file to avoid clutter
 
-echo "Running test cases"
-cd ../testing
-python run_test_cases.py
-python clean_test.py
 
+if [ -f "$HOME/.bash_profile" ]
+then
+    echo "Running test cases"
+    source "$HOME/.bash_profile"
+    cd ../testing
+    python run_test_cases.py
+    python clean_test.py
+fi
