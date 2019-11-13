@@ -44,7 +44,7 @@ subroutine write_result(step, incr, niter, time, temp, load, load_exp, disp, dis
     double precision, optional, intent(in) :: ur(:)
     ! Internal variables
     integer                      :: k1, iel, igp
-    
+    double precision             :: statev_norm
     
     !Write step number
     write(fid_res, "(F9.2)", advance="no") step
@@ -108,6 +108,11 @@ subroutine write_result(step, incr, niter, time, temp, load, load_exp, disp, dis
         do k1=1,size(outp%output_nodes)
             write(fid_res, dbl_format, advance="no") ur(outp%output_nodes(k1))
         enddo
+    endif
+    
+    ! Write norm of state variables (if requested)
+    if (outp%statev_norm) then
+        write(fid_res, dbl_format, advance="no") sqrt(sum(gp_statev**2))
     endif
     
     !Linebreak
@@ -262,6 +267,11 @@ implicit none
             write(fid_res, dblhead_str_format, advance="no") 'ur'//int2str(outp%output_nodes(k1))
         enddo
     endif
+    
+    if (outp%statev_norm) then
+        write(fid_res, dblhead_str_format, advance="no") 'norm(statev)'
+    endif
+    
     !Write linebreak
     write(fid_res, "(A)") ''
     

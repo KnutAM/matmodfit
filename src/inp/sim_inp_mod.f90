@@ -382,6 +382,8 @@ implicit none
             call read_int_vector_allocate(outp%dfgrd_comp)
         elseif (adjustl(textline)=='*statev_comp') then
             call read_int_vector_allocate(outp%statev_comp)
+        elseif (adjustl(textline)=='*statev_norm') then
+            call read_logical(outp%statev_norm)
         else
             call write_output('Unknown category "'//trim(textline)//'".', 'warning', 'inp')
         endif

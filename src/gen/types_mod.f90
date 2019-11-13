@@ -157,6 +157,7 @@ use iso_c_binding
         integer, allocatable            :: dfgrd_comp(:)            ! Which deformation gradient components to output. Always: (11,22,33,12,32,31,13,21,32)
         logical                         :: statev=.false.           ! Should state variables be output?
         integer, allocatable            :: statev_comp(:)           ! Which state variable components to output.
+        logical                         :: statev_norm=.false.      ! Should the norm of all state variables be written to output
         ! If the corresponding *_comp are set by user, * should be set to true!
         
     end type outp_typ
