@@ -264,12 +264,14 @@ implicit none
     ! Write nodal values
     if (outp%ur) then
         do k1=1,size(outp%output_nodes)
-            write(fid_res, dblhead_str_format, advance="no") 'ur'//int2str(outp%output_nodes(k1))
+            write(fid_res, dblhead_str_format, advance="no") 'ur'//int2str(outp%output_nodes(k1))//'('//int2str(col)//')'
+            col = col + 1
         enddo
     endif
     
     if (outp%statev_norm) then
-        write(fid_res, dblhead_str_format, advance="no") 'norm(statev)'
+        write(fid_res, dblhead_str_format, advance="no") 'norm(statev)'//'('//int2str(col)//')'
+        col = col + 1
     endif
     
     !Write linebreak
