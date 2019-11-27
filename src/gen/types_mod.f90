@@ -144,6 +144,7 @@ use iso_c_binding
                                                                     ! If result_steps=0 then all steps are saved (default)
                                                                     ! If result_steps<0 then no result file is made
         character(len=strl)             :: dbl_format=''            ! Output format for float values in result file (default set in check_input_mod.f90)
+        integer                         :: log_output=1             ! Amount of output to write to log file (0: Only errors, 1: simulation summarizing messages, 2: full output)
         
         ! Additional output
         integer, allocatable            :: output_nodes(:)          ! Which nodes to output from (default is all) (Only applicable to atp simulation, ignored for mps)

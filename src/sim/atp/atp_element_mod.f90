@@ -7,6 +7,7 @@ implicit none
 private 
 
 public      :: element_setup    ! Setup the element type
+public      :: get_material_didnt_converge_count ! As name implies
 public      :: element_nlgeom   ! Element for nlgeom=true (non-linear geometric analysis)
 public      :: element_lingeom  ! Element for nlgeom=false (linear geometric analysis)
 public      :: get_gpinfo       ! Get information about current gauss point
@@ -20,6 +21,8 @@ double precision, parameter :: pi = acos(-1.d0)  !Define pi
 
 ! General simulation properties (for output)
 integer         :: simnr
+integer         :: material_didnt_converge_count    ! Count number of times material routine did not converge (i.e. requested smaller time step)
+logical         :: full_output                      ! Should the info be output every time material did not converge?
 
 ! General element properties
 integer         :: ngp      !Number of gauss points
@@ -30,20 +33,35 @@ logical         :: bbar     !Abaqus b-bar method (Selectively reduced integratio
     contains
 
 ! Setup of elements (needs to run before using the other subroutines in the module)
-subroutine element_setup(set_ngp, set_nnod, set_bbar, set_simnr)
+subroutine element_setup(set_ngp, set_nnod, set_bbar, set_simnr, set_full_output)
 implicit none
     integer :: set_ngp
     integer :: set_nnod
     logical :: set_bbar
     integer :: set_simnr
+    logical, optional :: set_full_output
     
     ngp = set_ngp
     nnod = set_nnod
     ndof = nnod + 2
     bbar = set_bbar
     simnr = set_simnr
+    material_didnt_converge_count = 0
+    
+    if (present(set_full_output)) then
+        full_output = set_full_output
+    else
+        full_output = .true.
+    endif
         
 end subroutine element_setup
+
+function get_material_didnt_converge_count() result (count)
+implicit none
+    integer count
+    
+    count = material_didnt_converge_count
+end function
 
 ! Main element routine (Calculate Ke and Re, as well as gpstress, gpstatev and gpF)
 subroutine element_nlgeom( Ke, Re, ue, gpstress, gpstatev, gpF, Rpos, H0, &
@@ -131,7 +149,10 @@ implicit none
         gpstatev(:,k1)  = statev
         
         if (pnewdt<1.d0) then
-            call write_output('material routine (sim='//int2str(simnr)//', stp='//int2str(kstep)//', incr='//int2str(kinc)//', e='//int2str(noel)//', gp='//int2str(k1)//') requested a smaller timestep: pnewdt='//dbl2str(pnewdt,'F0.4'), 'status', 'sim:atp')
+            if (full_output) then
+                call write_output('material routine (sim='//int2str(simnr)//', stp='//int2str(kstep)//', incr='//int2str(kinc)//', e='//int2str(noel)//', gp='//int2str(k1)//') requested a smaller timestep: pnewdt='//dbl2str(pnewdt,'F0.4'), 'status', 'sim:atp')
+            endif
+            material_didnt_converge_count = material_didnt_converge_count + 1
             exit
         endif
         
@@ -227,7 +248,10 @@ implicit none
         gpstatev(:,k1)  = statev
         
         if (pnewdt<1.d0) then
-            call write_output('material routine (sim='//int2str(simnr)//', stp='//int2str(kstep)//', incr='//int2str(kinc)//', e='//int2str(noel)//', gp='//int2str(k1)//') requested a smaller timestep: pnewdt='//dbl2str(pnewdt,'F0.4'), 'status', 'sim:atp')
+            if (full_output) then
+                call write_output('material routine (sim='//int2str(simnr)//', stp='//int2str(kstep)//', incr='//int2str(kinc)//', e='//int2str(noel)//', gp='//int2str(k1)//') requested a smaller timestep: pnewdt='//dbl2str(pnewdt,'F0.4'), 'status', 'sim:atp')
+            endif
+            material_didnt_converge_count = material_didnt_converge_count + 1
             exit
         endif
         
