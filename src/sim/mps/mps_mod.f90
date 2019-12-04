@@ -74,7 +74,7 @@ double precision, allocatable   :: v(:), v_old(:), du(:)                !velocit
 double precision, allocatable   :: load(:), load_old(:), load_exp(:)    !stress measure
 double precision, allocatable   :: stat(:), stat_old(:)                 !state variables
 double precision                :: temp, temp_old                       !temperature
-double precision                :: denergy(4)                           ! sse, spd, scd, rpl output from umat
+double precision                :: denergy(4), energy(4)                ! sse, spd, scd, rpl output from umat
 double precision, allocatable   :: additional_output(:)                 !user chosen additional output variables
 double precision                :: adjustment(2,4)      ! Adjustment variable for smooth following of experimental data if control mode is changed
 integer, allocatable            :: free_dofs(:)         ! Free degrees of freedom in the problem
@@ -172,7 +172,7 @@ STEP_LOOP: do kstep = 1,nstep
     dtmain      = stp_time_incr(1); dtmin = stp_time_incr(2)
     dt          = stp_time_incr(3); dtmax = stp_time_incr(4)
     v           = 0.d0
-    time(1)     = 0.d0; kinc       = 0
+    time(1)     = 0.d0; kinc = 0
     
     
     ! Determine main time steps: tmain(nmain)
@@ -209,7 +209,7 @@ STEP_LOOP: do kstep = 1,nstep
         
         ! Write out results for the main increment if it should for current step
         if (res_in_step) then
-            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, reshape(stat, [size(stat), 1, 1]), denergy=denergy)
+            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, reshape(stat, [size(stat), 1, 1]), energy=energy)
         endif
         
         do while (.not.laststep)
@@ -242,10 +242,11 @@ STEP_LOOP: do kstep = 1,nstep
             if (lconv) then
                 v_old = v; v = (disp-disp_old)/dt; dt_old = dt                      ! Update values for better guessing
                 load_old = load; disp_old = disp; stat_old = stat; temp_old = temp  ! Update actual result values
+                energy = energy + denergy
                 
                 ! Write out results if that is requested for current simulation/step/increment, and it is not the laststep (then it will be written later)
                 if ((res_in_step).and.(.not.result_onlymain).and.(.not.laststep)) then
-                    call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, reshape(stat, [size(stat), 1, 1]), denergy=denergy)
+                    call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, reshape(stat, [size(stat), 1, 1]), energy=energy)
                 endif
                 
                 ! Update time stepping
@@ -275,7 +276,7 @@ STEP_LOOP: do kstep = 1,nstep
     if (kstep==nstep) then
         ! Write out results for last main step in last step, if it should for this step
         if (res_in_step) then
-            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, reshape(stat, [size(stat), 1, 1]), denergy=denergy)
+            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, reshape(stat, [size(stat), 1, 1]), energy=energy)
         endif
         
         if (err_in_step) then

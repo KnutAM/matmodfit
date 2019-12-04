@@ -29,7 +29,7 @@ implicit none
     
 end subroutine
 
-subroutine write_result(step, incr, niter, time, temp, load, load_exp, disp, disp_exp, outp, gp_statev, gp_stress, gp_strain, gp_dfgrd, ur, denergy)
+subroutine write_result(step, incr, niter, time, temp, load, load_exp, disp, disp_exp, outp, gp_statev, gp_stress, gp_strain, gp_dfgrd, ur, energy)
     implicit none
 !   character(len=20), parameter :: format_spec = '(p1,E15.5E3)'
     double precision, intent(in) :: step
@@ -42,7 +42,7 @@ subroutine write_result(step, incr, niter, time, temp, load, load_exp, disp, dis
     double precision, optional, intent(in) :: gp_strain(:,:,:)
     double precision, optional, intent(in) :: gp_dfgrd(:,:,:)
     double precision, optional, intent(in) :: ur(:)
-    double precision, optional, intent(in) :: denergy(4)
+    double precision, optional, intent(in) :: energy(4)
     ! Internal variables
     integer                      :: k1, iel, igp
     double precision             :: statev_norm
@@ -82,7 +82,7 @@ subroutine write_result(step, incr, niter, time, temp, load, load_exp, disp, dis
     !Write energy output
     if (allocated(outp%output_energies)) then
         do k1=1,size(outp%output_energies)
-            write(fid_res, dbl_format, advance="no") denergy(outp%output_energies(k1))
+            write(fid_res, dbl_format, advance="no") energy(outp%output_energies(k1))
         enddo
     endif
     

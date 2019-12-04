@@ -81,6 +81,7 @@ subroutine solve_incr(Rpos, H0, load, disp, temp, dtemp, time, dt, free_dofs, kn
         gp_strain0 = gp_strain
         pnewdt = 1.d0
         niter = 0
+        denergy = 0.d0
         do while(.true.)
             ! Step 0: Reset values for each iteration attempt
             gp_F  = gp_F0

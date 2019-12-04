@@ -78,6 +78,7 @@ subroutine mps_solve_incr(load_old, disp_old, temp_old, stat_old, load, disp, te
         sse = 0.d0; spd = 0.d0; scd = 0.d0; rpl = 0.d0
         predef = 0.d0; dpred  = 0.d0
         ddsddt = 0.d0; drplde = 0.d0; drpldt = 0.d0
+        denergy = 0.d0
     
         drot = 0.d0; ! Set drot to identity matrix
         drot(1,1) = 1.d0; drot(2,2) = 1.d0; drot(3,3) = 1.d0
