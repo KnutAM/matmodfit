@@ -518,6 +518,12 @@ implicit none
         call write_output('"'//trim(tmpstr)//'"', 'status', 'inp', loc=.false.)
     endif
     
+    if (allocated(outp%output_energies)) then
+        if (any(outp%output_energies>4).or.any(outp%output_energies<=0)) then
+            call write_output('output_energies cannot be smaller than 1 or larger than 4 (only sse, spd, scd and rpl possible)', 'error', 'inp')
+        endif
+    endif
+    
     if (nlgeom) then
         default_comp = [1,2,3,5]    ! 23 shear component at position 5
     else

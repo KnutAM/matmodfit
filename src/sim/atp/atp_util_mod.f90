@@ -22,7 +22,7 @@
 
 !Solve one increment
 subroutine solve_incr(Rpos, H0, load, disp, temp, dtemp, time, dt, free_dofs, known_dofs, gp_F, gp_s, gp_sv, gp_strain, u, du, &
-    iter, niter, lconv, pnewdt, kinc, kstep, props, cmname, umat_address, nlgeom, iter_err_norm)
+    iter, niter, lconv, pnewdt, kinc, kstep, props, cmname, umat_address, nlgeom, iter_err_norm, denergy)
     use types_mod
     use umat_mod
     implicit none
@@ -44,6 +44,7 @@ subroutine solve_incr(Rpos, H0, load, disp, temp, dtemp, time, dt, free_dofs, kn
         procedure(umat_template),pointer:: umat_address ! Addresss to umat subroutine
         logical, intent(in)             :: nlgeom       ! Bool to determine if nonlinear geometry effects should be accounted for
         double precision, intent(in)    :: iter_err_norm(:)	!Scaling to obtain averaged stresses from the residuals
+        double precision, intent(out)   :: denergy(4)   ! sse, spd, scd, rpl increment, integrated over the body (i.e. total energy, not specific)
         
         !Internal variables
         double precision :: K(size(u), size(u)), R(size(u))
@@ -56,6 +57,7 @@ subroutine solve_incr(Rpos, H0, load, disp, temp, dtemp, time, dt, free_dofs, kn
         double precision :: u_old(size(u)), ue(size(Rpos,1)+2)
         double precision :: Rscale      ! Scale factor for the equilibrium equations
         double precision, allocatable :: gp_sv0(:,:,:)
+        double precision :: elem_denergy(4)         ! sse, spd, scd, rpl increment, integrated over element
         
         allocate(gp_sv0(size(gp_sv,dim=1), size(gp_sv,dim=2), size(gp_sv,dim=3)))
         
@@ -102,10 +104,10 @@ subroutine solve_incr(Rpos, H0, load, disp, temp, dtemp, time, dt, free_dofs, kn
                 ! Call element routine
                 if (nlgeom) then
                     call element_nlgeom( Ke, Re, ue, gp_s(:,:,k1), gp_sv(:,:,k1), gp_F(:,:,k1), Rpos(:,k1), H0, &
-                    kinc, kstep, k1, pnewdt, props, cmname, dtemp, temp, time, dt, umat_address)
+                    kinc, kstep, k1, pnewdt, props, cmname, dtemp, temp, time, dt, umat_address, elem_denergy)
                 else
                     call element_lingeom( Ke, Re, ue, gp_strain(:,:,k1), gp_s(:,:,k1), gp_sv(:,:,k1), gp_F(:,:,k1), Rpos(:,k1), H0, &
-                    kinc, kstep, k1, pnewdt, props, cmname, dtemp, temp, time, dt, umat_address)
+                    kinc, kstep, k1, pnewdt, props, cmname, dtemp, temp, time, dt, umat_address, elem_denergy)
                 endif
                 
 
@@ -117,6 +119,7 @@ subroutine solve_incr(Rpos, H0, load, disp, temp, dtemp, time, dt, free_dofs, kn
                 K(dof,dof)  = K(dof, dof) + Ke
                 R(dof)      = R(dof)      + Re
                 Rscale      = Rscale + sqrt(sum((Re*iter_err_norm(dof))**2))	! Add the average stress contributions to Rscale
+                denergy = denergy + elem_denergy
             enddo
             if (.not.lconv) then
                 exit

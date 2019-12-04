@@ -147,6 +147,7 @@ use iso_c_binding
         integer                         :: log_output=1             ! Amount of output to write to log file (0: Only errors, 1: simulation summarizing messages, 2: full output)
         
         ! Additional output
+        integer, allocatable            :: output_energies(:)       ! Which energies to output (sse, spd, scd, rpl) (integrated quantity for entire test volume)
         integer, allocatable            :: output_nodes(:)          ! Which nodes to output from (default is all) (Only applicable to atp simulation, ignored for mps)
         logical                         :: ur=.false.               ! Should radial displacements be output? (ignored for mps)
         integer, allocatable            :: output_elems(:)          ! Which elements to output from. Always all integration points. (Only applicable to atp simulation, ignored for mps)

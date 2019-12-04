@@ -78,6 +78,7 @@ double precision                :: disp_conv(4)    ! Convert from strain inputs 
 double precision                :: disp(4), disp_new(4), disp_exp(4)  ![eps_z, phi, eps_ci, eps_co] (c=circumferential)
 double precision                :: load(4), load_new(4), load_exp(4)  ![Force, Torque, p_i, p_o]
 double precision                :: temp, temp_new           !Temperature
+double precision                :: denergy(4)       ! sse, spd, sce, rpl integrated over the volume
 double precision                :: adjustment(2,4)  ! Adjustment variable for smooth following of experimental data if control mode is changed
 double precision                :: len_adj          ! Adjustment of heigh (1) due to previous analysis (if cont_analysis<0) (otherwise 1.d0)
 double precision, allocatable   :: gp_F(:,:,:), gp_F0(:,:,:), gp_s(:,:,:), gp_s0(:,:,:), gp_sv(:,:,:), gp_sv0(:,:,:)
@@ -192,7 +193,7 @@ STEP_LOOP: do kstep = 1,nstep
         
         ! Write out results for main step if it should for current step
         if (res_in_step) then
-            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, gp_sv0, gp_s0, gp_strain0, gp_F0, u0(3:size(u)))
+            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, gp_sv0, gp_s0, gp_strain0, gp_F0, u0(3:size(u)), denergy)
         endif
         
         do while (.not.laststep)
@@ -217,7 +218,7 @@ STEP_LOOP: do kstep = 1,nstep
         
             ! Solve increment
             call solve_incr(rpos, h0, load_new, disp_new, temp, temp_new-temp, time, dt, free_dofs, known_dofs, gp_F, gp_s, gp_sv, gp_strain, u, du, iter, niter, lconv, pnewdt, &
-            kinc, kstep, props, cmname, umat_address, nlgeom, iter_err_norm)
+            kinc, kstep, props, cmname, umat_address, nlgeom, iter_err_norm, denergy)
             ! Check results and if OK go to next step
             if (lconv) then
                 load = load_new; disp = disp_new; temp = temp_new
@@ -226,7 +227,7 @@ STEP_LOOP: do kstep = 1,nstep
 
                 ! Write out results if that is requested for current simulation/step/increment for steps that are not main steps
                 if ((res_in_step).and.(.not.result_onlymain).and.(.not.laststep)) then
-                    call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, gp_sv, gp_s, gp_strain, gp_F, u(3:size(u)))
+                    call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, gp_sv, gp_s, gp_strain, gp_F, u(3:size(u)), denergy)
                 endif
                 
                 ! Update time stepping
@@ -257,7 +258,7 @@ STEP_LOOP: do kstep = 1,nstep
     if (kstep==nstep) then
         ! Write out results for last main step in last step, if it should for this step
         if (res_in_step) then
-            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, gp_sv, gp_s, gp_strain, gp_F, u(3:size(u)))
+            call write_result(step, kinc, niter, time(2), temp, load, load_exp, disp, disp_exp, f_data%sim(simnr)%outp, gp_sv, gp_s, gp_strain, gp_F, u(3:size(u)), denergy)
         endif
         
         if (err_in_step) then

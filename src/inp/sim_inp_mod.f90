@@ -360,6 +360,8 @@ implicit none
             call read_dbl_vector_allocate(outp%result_steps)
         elseif (adjustl(textline)=='*dbl_format') then
             call read_str(outp%dbl_format, strl)
+        elseif (adjustl(textline)=='*output_energies') then
+            call read_int_vector_allocate(outp%output_energies)
         elseif (adjustl(textline)=='*output_nodes') then
             call read_int_vector_allocate(outp%output_nodes)
         elseif (adjustl(textline)=='*ur') then

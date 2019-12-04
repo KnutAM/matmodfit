@@ -38,7 +38,7 @@ end subroutine
 
 
 subroutine mps_solve_incr(load_old, disp_old, temp_old, stat_old, load, disp, temp, stat, time, dt, free_dofs, iter, niter, lconv, pnewdt, &
-    kinc, kstep, props, cmname, umat, nlgeom, simnr)
+    kinc, kstep, props, cmname, umat, nlgeom, simnr, denergy)
     use types_mod
     use umat_mod
     implicit none
@@ -52,6 +52,7 @@ subroutine mps_solve_incr(load_old, disp_old, temp_old, stat_old, load, disp, te
         integer, intent(out)            :: niter
         logical, intent(out)            :: lconv
         double precision, intent(out)   :: pnewdt
+        double precision, intent(out)   :: denergy(4)
         integer, intent(in)             :: kinc, kstep  ! Increment and step number
         double precision, intent(in)    :: props(:)     ! Material properties/parameters
         character(len=80), intent(in)   :: cmname       ! Material name sent to umat
@@ -168,6 +169,7 @@ subroutine mps_solve_incr(load_old, disp_old, temp_old, stat_old, load, disp, te
             disp = disp + du
             niter = niter + 1
             error_old = error
+            denergy = [sse, spd, scd, rpl]
             
             ! Step 4: Check for max number of iterations
             if (niter>iter%max) then

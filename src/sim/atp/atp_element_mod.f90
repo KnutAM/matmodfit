@@ -65,12 +65,13 @@ end function
 
 ! Main element routine (Calculate Ke and Re, as well as gpstress, gpstatev and gpF)
 subroutine element_nlgeom( Ke, Re, ue, gpstress, gpstatev, gpF, Rpos, H0, &
-kinc, kstep, noel, pnewdt, props, cmname, dtemp, temp, time, dt, umat)
+kinc, kstep, noel, pnewdt, props, cmname, dtemp, temp, time, dt, umat, denergy)
 use umat_mod
 implicit none
     !other input variables
     double precision:: Ke(ndof,ndof), Re(ndof), ue(ndof), gpstress(6,ngp), gpstatev(:,:), gpF(9,ngp), Rpos(nnod), H0
     double precision:: Ke_gp(ndof,ndof), Re_gp(ndof), time(2)
+    double precision:: denergy(4)   ! sse, spd, scd, rpl increment, integrated over the element (i.e. total energy, not specific)
     !umat variables
     procedure(umat_template),pointer:: umat     ! Addresss to umat subroutine
     character(len=80)           :: cmname
@@ -95,6 +96,7 @@ implicit none
     abatime = time - dt
     
     sse = 0.d0; spd = 0.d0; scd = 0.d0; rpl = 0.d0
+    denergy = 0.d0
     predef = 0.d0; dpred  = 0.d0
     ddsddt = 0.d0; drplde = 0.d0; drpldt = 0.d0
     
@@ -142,6 +144,7 @@ implicit none
         call Re_calc(Ke_gp, Re_gp, F9, B_ki, C_kij, stress, ddsdde) !Calculate Ke_gp and Re_gp
         Ke = Ke + 2.d0*pi*R0*H0*w*Ke_gp
         Re = Re + 2.d0*pi*R0*H0*w*Re_gp
+        denergy = denergy + 2.d0*pi*R0*H0*w*[sse, spd, scd, rpl]
         
         ! Add updated values to gp-saved variables (the old values of these are saved in the main program)
         gpF(:,k1)       = F9
@@ -161,13 +164,14 @@ implicit none
 end subroutine element_nlgeom
 
 subroutine element_lingeom( Ke, Re, ue, gpstrain, gpstress, gpstatev, gpF, Rpos, H0, &
-kinc, kstep, noel, pnewdt, props, cmname, dtemp, temp, time, dt, umat)
+kinc, kstep, noel, pnewdt, props, cmname, dtemp, temp, time, dt, umat, denergy)
 use umat_mod
 implicit none
     !other input variables
     double precision:: Ke(ndof,ndof), Re(ndof), Ke_gp(ndof,ndof), Re_gp(ndof)
     double precision:: ue(ndof), Rpos(nnod), H0, time(2)
     double precision:: gpstrain(6,ngp), gpstress(6,ngp), gpstatev(:,:), gpF(9,ngp)
+    double precision:: denergy(4)   ! sse, spd, scd, rpl increment, integrated over the element (i.e. total energy, not specific)
     !umat variables
     procedure(umat_template),pointer:: umat     ! Addresss to umat subroutine
     character(len=80)           :: cmname
@@ -189,6 +193,7 @@ implicit none
     abatime = time - dt
     
     sse = 0.d0; spd = 0.d0; scd = 0.d0; rpl = 0.d0
+    denergy = 0.d0
     predef = 0.d0; dpred  = 0.d0
     ddsddt = 0.d0; drplde = 0.d0; drpldt = 0.d0
     
@@ -240,6 +245,7 @@ implicit none
         call Re_ss_calc(Ke_gp, Re_gp, B_ss, stress, ddsdde) !Calculate Ke_gp and Re_gp
         Ke = Ke + 2.d0*pi*R0*H0*w*Ke_gp
         Re = Re + 2.d0*pi*R0*H0*w*Re_gp
+        denergy = denergy + 2.d0*pi*R0*H0*w*[sse, spd, scd, rpl]
         
         ! Add updated values to gp-saved variables
         ! The old values of these are saved in the main program 

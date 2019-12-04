@@ -115,6 +115,7 @@ implicit none
     logical                         :: lconv
     double precision                :: pnewdt
     double precision, allocatable   :: iter_err_norm(:)
+    double precision                :: denergy(4)
     
     ! Materials for interpolation and local convergence
     type(material_typ)              :: material
@@ -238,7 +239,7 @@ implicit none
         call gen_free_dofs(free_dofs, known_dofs, ndof, [1,1,1,1], .false.)
         call solve_incr(rpos, h0, load, disp, f_data%sim(simnr)%init%temp_init, 0.d0, time, f_data%sim(simnr)%atp_mr%time_remesh, free_dofs, &
                known_dofs, gp_F, gp_stress, gp_sv, gp_strain, u0, du, f_data%sim(1)%iter, niter, lconv, pnewdt, &
-               k1, -simnr, props, f_data%glob%cmname, f_data%glob%umat_address, f_data%glob%nlgeom, iter_err_norm)
+               k1, -simnr, props, f_data%glob%cmname, f_data%glob%umat_address, f_data%glob%nlgeom, iter_err_norm, denergy)
         
         deallocate(free_dofs, known_dofs)
         if (.not.lconv) then
