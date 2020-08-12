@@ -80,14 +80,17 @@ end subroutine
 
 subroutine calculate_error(err, ctrl, err_tim_hist, err_exp_hist, err_sim_hist, err_hist_comp, e_cnt, error, evec)
 implicit none
-    type(err_typ)                           :: err                      ! Custom type containing error settings
-    double precision, intent(in)            :: ctrl(:,:)                ! Control as step variable type (i.e. first row represents which step it the remaining starts being valid from)
-    double precision, allocatable, intent(inout)         :: err_tim_hist(:,:), err_exp_hist(:,:), err_sim_hist(:,:)
-    integer                                 :: err_hist_comp(:)         ! Describes where in err_[sim/exp]_hist the disp values are put (load values are put at pos-1)
-    integer                                 :: e_cnt                    ! Counter for how many errors have been calculated
-    double precision, intent(out)           :: error                    ! Calculated error
-    double precision, allocatable, optional :: evec(:)                  ! Error vector
-    double precision, allocatable           :: err_tim_hist_tmp(:,:), err_exp_hist_tmp(:,:), err_sim_hist_tmp(:,:)
+    type(err_typ)                               :: err                      ! Custom type containing error settings
+    double precision, intent(in)                :: ctrl(:,:)                ! Control as step variable type (i.e. first row represents which step it the remaining starts being valid from)
+    double precision, allocatable, intent(inout):: err_tim_hist(:,:)        ! [step, time]
+    double precision, allocatable, intent(inout):: err_exp_hist(:,:)        ! experiment results [disp1, load1, disp2, load2, ...] channels described by err_hist_comp
+    double precision, allocatable, intent(inout):: err_sim_hist(:,:)        ! simulation results [disp1, load1, disp2, load2, ...] channels described by err_hist_comp.
+                                                                            ! On output, err_sim_hist contains all point errors vector
+    integer                                     :: err_hist_comp(:)         ! Where in err_[sim/exp]_hist the disp values are put (load values are put at pos-1). If zero values not put
+    integer                                     :: e_cnt                    ! Counter for how many errors have been calculated
+    double precision, intent(out)               :: error                    ! Calculated error
+    double precision, allocatable, optional     :: evec(:)                  ! Error vector
+    double precision, allocatable               :: err_tim_hist_tmp(:,:), err_exp_hist_tmp(:,:), err_sim_hist_tmp(:,:)
     
     ! Update size of error_hist
     if (err%hist_rows == -1) then            ! Unknown (first time simulation is run)
@@ -153,9 +156,9 @@ implicit none
     double precision, intent(out)           :: error                    ! Calculated error
     double precision, allocatable, optional :: evec(:)                  ! Error vector
     
-    double precision                        :: step, error_scale_factor
+    double precision                        :: step, error_scale_factor, total_time
     integer                                 :: k1, k2, thisind, nextind, tempind, num_channels, ch_ind
-    double precision, allocatable           :: scaling(:), stp_err_scale(:), stp_err_scale_ctrl(:)
+    double precision, allocatable           :: scaling(:), stp_err_scale(:), stp_err_scale_ctrl(:), dtime(:)
     integer, allocatable                    :: stp_ctrl(:)
     
         
@@ -220,7 +223,15 @@ implicit none
         thisind = nextind
     enddo
     
-    ! Calculate actual error
+    ! Calculate actual error (time average)
+    allocate(dtime(size(err_tim_hist, 1)))
+    dtime(2:(size(dtime)-1)) = (err_tim_hist(3:size(dtime), 2) - err_tim_hist(1:(size(dtime)-2), 2))/2.0
+    dtime(1) = (err_tim_hist(2, 2) - err_tim_hist(1, 2))/2.0
+    dtime(size(dtime)) = (err_tim_hist(size(dtime), 2) - err_tim_hist((size(dtime)-1), 2))/2.0
+    total_time = err_tim_hist(size(dtime), 2) - err_tim_hist(1, 2)
+    do k1=1,size(err_sim_hist, 2)
+        !err_sim_hist(:, k1) = err_sim_hist(:, k1)*sqrt(dtime/total_time)
+    enddo
     error = sum(err_sim_hist**2)/e_cnt
         
     if (present(evec)) then
