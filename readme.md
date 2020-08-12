@@ -19,7 +19,12 @@ Windows
 Linux
 * "cd scripts"
 * "chmod 744 install_matmodfit.sh"
-* ./install_matmodfit.sh
+* "./install_matmodfit.sh"
+
+C3SE cluster (linux)
+* "cd scripts"
+* "chmod 744 install_on_cluster.sh"
+* "./instal_on_cluster.sh"
 
 ## Coding standard
 - Coding standard should be driven towards: http://www.fortran.com/Fortran_Style.pdf
