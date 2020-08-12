@@ -36,6 +36,7 @@ subroutine get_expdata(f_data, simnr)
     double precision, allocatable   :: exprow(:)
     integer, allocatable            :: stprows_tmp(:)
     double precision, allocatable   :: steps(:)
+    double precision, allocatable   :: time(:)
     
     
     open(newunit=expdata_fid,file=f_data%sim(simnr)%exp%exp_file,status='old',iostat=status)
@@ -133,6 +134,20 @@ subroutine get_expdata(f_data, simnr)
         allocate(f_data%sim(simnr)%sim_setup%steps(kstep-1))
         f_data%sim(simnr)%sim_setup%steps = steps(1:(kstep-1))
     endif
+    
+    ! Check that time is increasing
+    allocate(time(nrows))
+    time = f_data%sim(simnr)%sim_setup%expdata_array(:, f_data%sim(simnr)%exp%exp_info(2))
+    if (any(time(1:(nrows-1)) >= time(2:nrows))) then
+        call write_output('The time in expdata is not montonically increasing, check exp_info input. Writing out the first time points', 'error', 'sim', halt=.false.)
+        k1 = 0
+        do while (k1 < min(nrows, 10))
+            k1= k1 + 1
+            call write_output(dbl2str(time(k1)), 'error', 'sim', loc=.false., halt=.false.)
+        enddo
+        call write_output('Exiting', 'error', 'sim', loc=.false.)
+    endif
+    
     
 end subroutine
 
