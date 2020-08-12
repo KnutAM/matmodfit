@@ -6,8 +6,16 @@ use output_mod
 implicit none
     
     private
-    public      ::  mps_gen_free_dofs
-    public      ::  mps_solve_incr
+    public  ::  mps_gen_free_dofs
+    public  ::  mps_solve_incr
+    public  ::  setup_solve_incr       ! Initiate variables for solve_incr
+    public  ::  get_equilibrium_didnt_converge_count ! As name implies
+    public  ::  get_material_didnt_converge_count ! As name implies
+    
+    ! Simulation variables
+    integer         :: equilibrium_didnt_converge_count     ! Count number of times equilibrium did not converge
+    integer         :: material_didnt_converge_count        ! Count number of times material did not converge
+    logical         :: full_output                          ! If output should be given each time or just summerized (by using the above)
     
     contains 
     
@@ -36,6 +44,13 @@ endif
 
 end subroutine
 
+subroutine setup_solve_incr(set_full_output)
+implicit none
+    logical set_full_output
+    full_output = set_full_output
+    equilibrium_didnt_converge_count = 0
+    material_didnt_converge_count = 0
+end subroutine
 
 subroutine mps_solve_incr(load_old, disp_old, temp_old, stat_old, load, disp, temp, stat, time, dt, free_dofs, iter, niter, lconv, pnewdt, &
     kinc, kstep, props, cmname, umat, nlgeom, simnr, denergy)
@@ -134,7 +149,12 @@ subroutine mps_solve_incr(load_old, disp_old, temp_old, stat_old, load, disp, te
             
             lconv = pnewdt>=1.d0
             if (.not.lconv) then
-                call write_output('material routine (sim='//int2str(simnr)//', stp='//int2str(kstep)//', incr='//int2str(kinc)//') requested a smaller timestep: pnewdt='//dbl2str(pnewdt,'F0.4'), 'status', 'sim:mps')
+                if (full_output) then
+                    call write_output('material routine (sim='//int2str(simnr)//', stp='//int2str(kstep)//', incr='//int2str(kinc)//') requested a smaller timestep: pnewdt='//dbl2str(pnewdt,'F0.4'), 'status', 'sim:mps')
+                else 
+                    material_didnt_converge_count = material_didnt_converge_count + 1
+                endif
+                
                 exit
             endif
 
@@ -176,11 +196,28 @@ subroutine mps_solve_incr(load_old, disp_old, temp_old, stat_old, load, disp, te
             if (niter>iter%max) then
                 lconv = .false.
                 pnewdt = 0.75d0
-                call write_output('Could not find equilibrum in '//int2str(iter%max)//' attempts, using smaller time step', 'status', 'sim:mps')
+                if (full_output) then
+                    call write_output('Could not find equilibrum in '//int2str(iter%max)//' attempts, using smaller time step', 'status', 'sim:mps')
+                else
+                    equilibrium_didnt_converge_count = equilibrium_didnt_converge_count + 1
+                endif
+                
                 exit
             endif
         enddo
 end subroutine
+
+function get_equilibrium_didnt_converge_count() result (equilibrium_didnt_converge_count_out)
+implicit none
+    integer equilibrium_didnt_converge_count_out
+    equilibrium_didnt_converge_count_out = equilibrium_didnt_converge_count
+end function
+
+function get_material_didnt_converge_count() result (material_didnt_converge_count_out)
+implicit none
+    integer material_didnt_converge_count_out
+    material_didnt_converge_count_out = material_didnt_converge_count
+end function
 
 end module
     

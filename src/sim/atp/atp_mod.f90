@@ -130,6 +130,7 @@ call atp_import_init(f_data, simnr, exp_info, nstatv, gp_s0, gp_strain0, gp_F0, 
 ! == Mesh and geometry == 
 call atp_import_mesh(f_data%sim(simnr)%mesh1d, len_adj, u0, h0, ngp, bbar, nnod, nel, ndof_tot, rpos, disp_conv, iter_err_norm)
 call element_setup(ngp, nnod, bbar, simnr, set_full_output=(f_data%sim(simnr)%outp%log_output>=2))
+call setup_solve_incr(f_data%sim(simnr)%outp%log_output>=2)
 
 !Allocate gp_, dispvars, additional_output
 allocate(u(ndof_tot), du(ndof_tot), v(ndof_tot), v_old(ndof_tot))
@@ -287,6 +288,9 @@ endif
 if (f_data%sim(simnr)%outp%log_output==1) then
     if (get_material_didnt_converge_count()>0) then
         call write_output('material routine requested smaller timestep '//int2str(get_material_didnt_converge_count())//' times during simulation nr '//int2str(simnr), 'status', 'sim:atp')
+    endif
+    if (get_equilibrium_didnt_converge_count()>0) then
+        call write_output('equilibrium iteration required smaller timestep '//int2str(get_equilibrium_didnt_converge_count())//' times during simulation nr '//int2str(simnr), 'status', 'sim:atp')
     endif
 endif
 

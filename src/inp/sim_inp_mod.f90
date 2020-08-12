@@ -358,6 +358,8 @@ implicit none
             call read_logical(outp%result_inclexp)
         elseif (adjustl(textline)=='*result_steps') then
             call read_dbl_vector_allocate(outp%result_steps)
+        elseif (adjustl(textline)=='*log_output') then
+            call read_int(outp%log_output)
         elseif (adjustl(textline)=='*dbl_format') then
             call read_str(outp%dbl_format, strl)
         elseif (adjustl(textline)=='*output_energies') then

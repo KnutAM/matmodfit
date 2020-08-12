@@ -12,14 +12,27 @@
     public  ::  apply_bc        ! Apply the boundary conditions (prescribed displacements)
     public  ::  get_result      ! Get the results from the particular increment
     public  ::  gen_free_dofs   ! Obtain the free degrees of freedom for particular step
+    public  ::  setup_solve_incr    ! Initiate variables for solve_incr
+    public  ::  get_equilibrium_didnt_converge_count ! As name implies
     
     ! Parameters
     double precision, parameter :: pi = acos(-1.d0)  !Define pi
+    
+    ! Simulation variables
+    integer         :: equilibrium_didnt_converge_count     ! Count number of times equilibrium did not converge
+    logical         :: full_output                          ! Should the info be output every time no convergence?
 
     contains
     !==========================================================================================================
     !Iteration subroutines
 
+subroutine setup_solve_incr(set_full_output)
+implicit none
+    logical set_full_output
+    full_output = set_full_output
+    equilibrium_didnt_converge_count = 0
+end subroutine
+    
 !Solve one increment
 subroutine solve_incr(Rpos, H0, load, disp, temp, dtemp, time, dt, free_dofs, known_dofs, gp_F, gp_s, gp_sv, gp_strain, u, du, &
     iter, niter, lconv, pnewdt, kinc, kstep, props, cmname, umat_address, nlgeom, iter_err_norm, denergy)
@@ -166,7 +179,11 @@ subroutine solve_incr(Rpos, H0, load, disp, temp, dtemp, time, dt, free_dofs, kn
             if (niter>iter%max) then
                 lconv = .false.
                 pnewdt = 0.75d0
-                call write_output('Could not find equilibrum in '//int2str(iter%max)//' attempts, using smaller time step', 'status', 'sim:atp')
+                if (full_output) then
+                    call write_output('Could not find equilibrum in '//int2str(iter%max)//' attempts, using smaller time step', 'status', 'sim:atp')
+                else
+                    equilibrium_didnt_converge_count = equilibrium_didnt_converge_count + 1
+                endif
                 exit
             endif
         enddo
@@ -357,5 +374,12 @@ subroutine gen_free_dofs(free_dofs, known_dofs, ndof_tot, ctrl, intpres_extstrn)
         endif
 
 end subroutine
+
+function get_equilibrium_didnt_converge_count() result (equilibrium_didnt_converge_count_out)
+implicit none
+    integer equilibrium_didnt_converge_count_out
+    equilibrium_didnt_converge_count_out = equilibrium_didnt_converge_count
+end function
+
 
 end module

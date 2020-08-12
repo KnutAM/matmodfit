@@ -126,6 +126,7 @@ allocate(result_steps, source=f_data%sim(simnr)%outp%result_steps)
 save_results    = (f_data%glob%resnr>0).and.(any(result_steps>-1.d-10))
 result_onlymain = f_data%sim(simnr)%outp%result_onlymain
 result_inclexp  = f_data%sim(simnr)%outp%result_inclexp
+call setup_solve_incr(f_data%sim(simnr)%outp%log_output>=2)
 
 !Define initial values
 time = expdata(1,exp_info(2))               ! Start time 
@@ -297,6 +298,15 @@ if (error<(huge(1.d0)/10)) then ! Check that simulation succeeded before setting
                              err_tim_hist, err_exp_hist, err_sim_hist, err_hist_comp, e_cnt, error, evec)
     endif
     
+endif
+
+if (f_data%sim(simnr)%outp%log_output==1) then
+    if (get_material_didnt_converge_count()>0) then
+        call write_output('material routine requested smaller timestep '//int2str(get_material_didnt_converge_count())//' times during simulation nr '//int2str(simnr), 'status', 'sim:mps')
+    endif
+    if (get_equilibrium_didnt_converge_count()>0) then
+        call write_output('equilibrium iteration required smaller timestep '//int2str(get_equilibrium_didnt_converge_count())//' times during simulation nr '//int2str(simnr), 'status', 'sim:mps')
+    endif
 endif
 
 call system_clock ( clock_count, clock_rate)
