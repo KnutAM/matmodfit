@@ -25,7 +25,6 @@ chmod 744 install_matmodfit.sh
 # Set the replies to avoid user interaction
 echo "1" > replies.txt      # compiler=ifort (Replace for first to ensure empty file)
 echo "yes" >> replies.txt   # default directory (Append for the remaining answers)
-echo "yes" >> replies.txt   # add paths to .bash_profile/.bashrc/.profile files
 
 # Run the installation script
 ./install_matmodfit.sh < replies.txt    # Use the lines in replies.txt as answers. 

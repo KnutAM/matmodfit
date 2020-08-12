@@ -53,27 +53,33 @@ if [ -z "$MKLROOT" ]; then
 	export MKLROOT="$MKLROOT"
 fi;
 
-
-# Modify the $HOME/.[bash_]profile file to contain the necessary environmental variables
-START_STRING="#Automatically added matmodfit directories"
-LD_STRING='export LD_LIBRARY_PATH="$LD_LIBRARY_PATH":'"$installdir"
-PATH_STRING='export PATH="$PATH":'"$installdir"
-END_STRING="#End of matmodfit directories"
-
-# We need to check if .bash_profile exists. If it does, it will override content of .profile
-# We should therefore not create it if it doesn't exist.
-# Using the bashrc should also work fine, and is therefore favoured over .profile if .bashrc exists
-path_file="noadd"
-if [ -f $HOME/.bash_profile ]; then
-    path_file="$HOME/.bash_profile"
-elif [ -f $HOME/.bashrc ]; then
-    path_file="$HOME/.bashrc"
+if [[ :$PATH: == *:"$installdir":* ]] ; then
+    add_to_path="no"
 else
-    path_file="$HOME/.profile"
-fi;
+    add_to_path="yes"
+    # Modify the $HOME/.[bash_]profile file to contain the necessary environmental variables
+    START_STRING="#Automatically added matmodfit directories"
+    LD_STRING='export LD_LIBRARY_PATH="$LD_LIBRARY_PATH":'"$installdir"
+    PATH_STRING='export PATH="$PATH":'"$installdir"
+    END_STRING="#End of matmodfit directories"
 
-echo "Do you want to add path entries to the $path_file file? (yes/no)"
-read add_to_path
+    # We need to check if .bash_profile exists. If it does, it will override content of .profile
+    # We should therefore not create it if it doesn't exist.
+    # Using the bashrc should also work fine, and is therefore favoured over .profile if .bashrc exists
+    if [ -f $HOME/.bash_profile ]; then
+        path_file="$HOME/.bash_profile"
+    elif [ -f $HOME/.bashrc ]; then
+        path_file="$HOME/.bashrc"
+    else
+        path_file="$HOME/.profile"
+    fi;
+    
+    echo "$START_STRING" >>$path_file
+	echo "$LD_STRING" >>$path_file
+	echo "$PATH_STRING" >>$path_file
+	echo "$END_STRING" >>$path_file
+fi
+
 
 # Create installation directory
 mkdir $installdir  # Create folder to contain all the finished software
@@ -127,25 +133,11 @@ echo "material models have been built, building examples"
 python bld_examples.py $installdir $compiler
 
 echo "Verification of installation"
-PATH=$PATH:$installdir
-LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$installdir
-matmodfit --version
-
-
 if [ "$add_to_path" == "yes" ]; then
-	echo "$START_STRING" >>$path_file
-	echo "$LD_STRING" >>$path_file
-	echo "$PATH_STRING" >>$path_file
-	echo "$END_STRING" >>$path_file
-else
-    path_file="noadd"	
+    PATH=$PATH:$installdir
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$installdir
 fi;
+matmodfit --version
 
 #Script completed
 echo "Setup completed"
-if [ "$path_file" == "noadd" ]; then
-	echo "Path not automatically added, you have to ensure this manually"
-else
-	echo "Type: source $path_file to add program to path directly"
-	echo "This will happen automatically after next logout"
-fi;
