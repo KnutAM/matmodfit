@@ -96,7 +96,7 @@ subroutine run_optanalyzer(f_data, xvars)
         f_data%glob%resnr = f_data%glob%resnr + 1   ! Increment result number to ensure result datafiles are created.
         call optanalyzer(xvars(:,k1), f_data, error, dfdx, evec, corr)
         ! Write results to result file
-        call write_opt_ana_results(error, corr)
+        call write_opt_ana_results(error, dfdx, corr)
     enddo
     
     call write_output('Optimum analysis finished', 'status')

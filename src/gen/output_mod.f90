@@ -369,14 +369,17 @@ implicit none
     
 end subroutine
 
-subroutine write_opt_ana_results(error, corr_matrix)
+subroutine write_opt_ana_results(error, dfdx, corr_matrix)
 implicit none
-    double precision            :: error
-    double precision, optional  :: corr_matrix(:,:)
+    double precision    :: error
+    double precision    :: dfdx(:)  ! Gradient of objective function wrt. optimized material parameters
+    double precision    :: corr_matrix(:,:)
     
     write(matmodfit_res,*) '== OPTIMUM ANALYSIS RESULTS =='
     write(matmodfit_res,*) 'Error at optimum point:'
     write(matmodfit_res,"(ES15.5E3)") error
+    write(matmodfit_res,*) 'Error gradient for optimized material parameters:'
+    call write_vector(matmodfit_res, dfdx)
     write(matmodfit_res,*) 'Correlation matrix for optimized material parameters:'
     call write_matrix(matmodfit_res, corr_matrix)
     write(matmodfit_res,*) '== END OPTIMUM ANALYSIS RESULTS =='
