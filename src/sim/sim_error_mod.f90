@@ -230,7 +230,7 @@ implicit none
     dtime(size(dtime)) = (err_tim_hist(size(dtime), 2) - err_tim_hist((size(dtime)-1), 2))/2.0
     total_time = err_tim_hist(size(dtime), 2) - err_tim_hist(1, 2)
     do k1=1,size(err_sim_hist, 2)
-        !err_sim_hist(:, k1) = err_sim_hist(:, k1)*sqrt(dtime/total_time)
+        err_sim_hist(:, k1) = err_sim_hist(:, k1)*sqrt(dtime/total_time)
     enddo
     error = sum(err_sim_hist**2)/e_cnt
         
