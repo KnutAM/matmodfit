@@ -184,7 +184,7 @@ implicit none
     do while (tempind>0)
         step = err_tim_hist(thisind, 1)
         
-        tempind = findfirst(err_tim_hist(thisind:, 1)>step)  ! Gives zero if no true values
+        tempind = find_first_larger_than_in_matrix(err_tim_hist, 1, step, start_row=thisind)
         if (tempind==0) then
             nextind = size(err_tim_hist,1)+1
         else
@@ -379,6 +379,30 @@ implicit none
     do k1=1,size(log_arr)
         if (log_arr(k1)) then
             ind = k1
+            return
+        endif
+    enddo
+    
+end function
+
+! This function allows sending in the entire matrix (avoid temporary variables and thus avoiding stack overflow)
+function find_first_larger_than_in_matrix(matrix, col, compare_value, start_row) result (resulting_row)
+implicit none
+    double precision    :: matrix(:,:)
+    integer             :: col
+    double precision    :: compare_value
+    integer             :: resulting_row
+    integer             :: k1
+    integer, optional   :: start_row
+    
+    if (.not.present(start_row)) then
+        start_row = 1
+    endif
+    
+    resulting_row = 0
+    do k1=start_row,size(matrix,1)
+        if (matrix(k1, col) > compare_value) then
+            resulting_row = k1
             return
         endif
     enddo
