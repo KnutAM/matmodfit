@@ -138,8 +138,8 @@ subroutine get_expdata(f_data, simnr)
     ! Check that time is increasing
     allocate(time(nrows))
     time = f_data%sim(simnr)%sim_setup%expdata_array(:, f_data%sim(simnr)%exp%exp_info(2))
-    if (any(time(1:(nrows-1)) >= time(2:nrows))) then
-        call write_output('The time in expdata is not montonically increasing, check exp_info input. Writing out the first time points', 'error', 'sim', halt=.false.)
+    if (any(time(1:(nrows-1)) > time(2:nrows)).or.(time(1)==time(nrows))) then
+        call write_output('The time in expdata is not (weakly) montonically increasing, check exp_info input. Writing out the first time points', 'error', 'sim', halt=.false.)
         k1 = 0
         do while (k1 < min(nrows, 10))
             k1= k1 + 1
