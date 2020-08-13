@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script to build matmodfit and its material models
+# Script to build matmodfit
 # Run from inside the script folder
 # You may need to add permissions as chmod 744 install_matmodfit.sh first
 
@@ -25,6 +25,11 @@ if [ "$answer" == "no" ]; then
 	read user_install_dir
 	installdir=$user_install_dir
 fi;
+
+# Ask the user to install MaterialModels
+echo "matmodfit require material routines to run, do you want to install the default from the MaterialModels repository (required for tests to work)? (yes/no)"
+read install_MaterialModels
+
 
 # Try to set the MKLROOT environment variable if not set,
 # by running intel's mklvars.sh script
@@ -53,33 +58,16 @@ if [ -z "$MKLROOT" ]; then
 	export MKLROOT="$MKLROOT"
 fi;
 
+
+
 if [[ :$PATH: == *:"$installdir":* ]] ; then
-    add_to_path="no"
-else
-    add_to_path="yes"
-    # Modify the $HOME/.[bash_]profile file to contain the necessary environmental variables
-    START_STRING="#Automatically added matmodfit directories"
-    LD_STRING='export LD_LIBRARY_PATH="$LD_LIBRARY_PATH":'"$installdir"
-    PATH_STRING='export PATH="$PATH":'"$installdir"
-    END_STRING="#End of matmodfit directories"
+    PATH=$PATH:$installdir
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$installdir
+fi;
 
-    # We need to check if .bash_profile exists. If it does, it will override content of .profile
-    # We should therefore not create it if it doesn't exist.
-    # Using the bashrc should also work fine, and is therefore favoured over .profile if .bashrc exists
-    if [ -f $HOME/.bash_profile ]; then
-        path_file="$HOME/.bash_profile"
-    elif [ -f $HOME/.bashrc ]; then
-        path_file="$HOME/.bashrc"
-    else
-        path_file="$HOME/.profile"
-    fi;
-    
-    echo "$START_STRING" >>$path_file
-	echo "$LD_STRING" >>$path_file
-	echo "$PATH_STRING" >>$path_file
-	echo "$END_STRING" >>$path_file
-fi
-
+chmod 744 add_to_system_variable_if_not_already_there.sh
+./add_to_system_variable_if_not_already_there.sh PATH $installdir
+./add_to_system_variable_if_not_already_there.sh LD_LIBRARY_PATH $installdir
 
 # Create installation directory
 mkdir $installdir  # Create folder to contain all the finished software
@@ -124,19 +112,19 @@ fi;
 
 cp matmodfit $installdir
 
-echo "matmodfit has been built, building material models"
+echo "matmodfit has been built, building examples"
 # Build material models
 cd ../scripts   # Exit out of build folder
-python bld_umats.py $installdir $compiler
-
-echo "material models have been built, building examples"
 python bld_examples.py $installdir $compiler
 
-echo "Verification of installation"
-if [ "$add_to_path" == "yes" ]; then
-    PATH=$PATH:$installdir
-    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$installdir
+echo "examples built"
+if [ "$install_MaterialModels" == "yes" ]; then
+    echo "Installing material models"
+    chmod 744 install_MaterialModels.sh
+    ./install_MaterialModels.sh
 fi;
+
+echo "Verification of installation"
 matmodfit --version
 
 #Script completed
