@@ -21,5 +21,5 @@ python compile_general.py
 # Add compiled location to bash_profile etc. 
 cd ..
 compiled_dir="$PWD/compiled"
-cd scripts
+cd ../matmodfit/scripts
 ./add_to_system_variable_if_not_already_there.sh LD_LIBRARY_PATH $compiled_dir

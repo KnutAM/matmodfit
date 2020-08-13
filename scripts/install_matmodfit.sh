@@ -65,9 +65,11 @@ if [[ :$PATH: == *:"$installdir":* ]] ; then
     LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$installdir
 fi;
 
+cd scripts
 chmod 744 add_to_system_variable_if_not_already_there.sh
 ./add_to_system_variable_if_not_already_there.sh PATH $installdir
 ./add_to_system_variable_if_not_already_there.sh LD_LIBRARY_PATH $installdir
+cd ..
 
 # Create installation directory
 mkdir $installdir  # Create folder to contain all the finished software
