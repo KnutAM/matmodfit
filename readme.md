@@ -11,6 +11,9 @@ Linux (gfortran or ifort)
 Windows (ifort with Visual studio)
 
 ## Setup environment
+* "git clone https://github.com/KnutAM/matmodfit.git"
+* "cd matmodfit"
+
 Windows
 * "mkdir build"
 * "cd build"
@@ -21,7 +24,7 @@ Linux
 * "chmod 744 install_matmodfit.sh"
 * "./install_matmodfit.sh"
 
-C3SE cluster (linux)
+Quick commands for C3SE cluster (linux)
 * "cd scripts"
 * "chmod 744 install_on_cluster.sh"
 * "./instal_on_cluster.sh"

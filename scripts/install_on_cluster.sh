@@ -40,4 +40,4 @@ then
     cd ../testing
     python run_test_cases.py
     python clean_test.py
-fi
+fi;

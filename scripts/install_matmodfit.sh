@@ -127,6 +127,7 @@ if [ "$install_MaterialModels" == "yes" ]; then
 fi;
 
 echo "Verification of installation"
+export PATH=$PATH:$installdir
 matmodfit --version
 
 #Script completed
