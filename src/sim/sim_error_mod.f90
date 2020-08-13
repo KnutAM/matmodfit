@@ -157,7 +157,7 @@ implicit none
     double precision, allocatable, optional :: evec(:)                  ! Error vector
     
     double precision                        :: step, error_scale_factor, total_time
-    integer                                 :: k1, k2, thisind, nextind, tempind, num_channels, ch_ind
+    integer                                 :: k1, k2, thisind, nextind, num_channels, ch_ind
     double precision, allocatable           :: scaling(:), stp_err_scale(:), stp_err_scale_ctrl(:), dtime(:)
     integer, allocatable                    :: stp_ctrl(:)
     
@@ -180,15 +180,13 @@ implicit none
     
     ! Loop over each step in the error history saved. Treat each of these bulks by themselves as different steps may have different error scaling
     thisind = 1
-    tempind = 1 ! Needs to be set to some value >0 to enter loop
-    do while (tempind>0)
+    nextind = 0
+    do while (nextind<(size(err_tim_hist,1)+1))
         step = err_tim_hist(thisind, 1)
         
-        tempind = find_first_larger_than_in_matrix(err_tim_hist, 1, step, start_row=thisind)
-        if (tempind==0) then
+        nextind = find_first_larger_than_in_matrix(err_tim_hist, 1, step, start_row=thisind)
+        if (nextind==0) then
             nextind = size(err_tim_hist,1)+1
-        else
-            nextind = thisind + tempind - 1
         endif
         
         call get_step_data_int(stp_ctrl, ctrl, step)
