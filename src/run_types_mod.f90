@@ -87,9 +87,14 @@ subroutine run_optanalyzer(f_data, xvars)
     double precision                :: xvars(:,:)
     double precision, allocatable   :: evec(:), dfdx(:), corr(:,:)
     double precision                :: error
-    integer                         :: k1
+    integer                         :: k1, nvar
     
     call write_output('Optimum analysis started', 'status')
+    
+    ! Allocate outputs
+    nvar = size(xvars,1)
+    allocate(dfdx(nvar))
+    allocate(corr(nvar, nvar))
     
     ! Optimum analyzer
     do k1=1,size(xvars,2)

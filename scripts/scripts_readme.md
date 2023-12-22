@@ -30,5 +30,5 @@ Second argument is compiler (default is ifort)
 ## get_mklroot.sh
 Will try to get the MKL environment variables and print the $MKLROOT
 
-##matmodfit.bat
+## matmodfit.bat
 Start a cmd window with the path to the matmodfit program in path (for users without rights to add locations to path)

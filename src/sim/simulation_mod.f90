@@ -194,15 +194,15 @@ end subroutine
 subroutine optanalyzer(xopt, f_data, error, dfdx, evec, corr)
     implicit none
     double precision                :: xopt(:), error
-    type(fdata_typ)					:: f_data
-    double precision, allocatable   :: dfdx(:), corr(:,:), evec(:), evec_gradient(:,:), evec_norm(:)
+    type(fdata_typ)		            :: f_data
+    double precision                :: dfdx(:), corr(:,:)
+    double precision, allocatable   :: evec(:) ! Must be allocatable since declared as such in simulate_gradient.
+    double precision, allocatable   :: evec_norm(:), evec_gradient(:,:)
     integer                         :: k1, k2, nvar
     integer                         :: tmp_resnr
     
     nvar = size(xopt)
-    
-    ! allocate output depending on sizes of input
-    allocate(dfdx(nvar), corr(nvar, nvar), evec_norm(nvar))
+    allocate(evec_norm(nvar))
     
     ! Ensure that results are not written for each pertubation
     tmp_resnr = f_data%glob%resnr ! Save old setting

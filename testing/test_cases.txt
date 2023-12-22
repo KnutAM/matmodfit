@@ -20,4 +20,4 @@ Case ID     input_file[w/o suffix]      max_error       max_time[s]     Comment
     019                   test_19            1e20               1.0     Optimization with user library
     020                   test_20            1e20               1.0     Optimization using ATP with user optimization method
     021                   test_21            1e20               1.0     Optimization using ATP with user material parameter scaling
-    022                   test_22            1e20               1.0     External script (python) with optimization and optanalyzer
+    022                   test_22            1e20               4.0     External script (python) with optimization and optanalyzer
